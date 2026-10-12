@@ -1,10 +1,23 @@
 "use server";
 
+import { cache } from "react";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/env";
-import type { EducationLevel } from "@/lib/types";
+import {
+  dashboardPathFor,
+  loginPathFor,
+} from "@/lib/auth/account";
+import type { AccountType, EducationLevel, Profile } from "@/lib/types";
+import { ACCOUNT_TYPES } from "@/lib/constants";
+import {
+  normalizeInviteCode,
+  redeemSchoolInvite,
+  resolveSchoolByCode,
+  validateSchoolInvite,
+} from "@/lib/school/invites";
+import { applyPendingSchoolInviteForUser } from "@/lib/actions/school-invites";
 
 export interface AuthState {
   error?: string;
@@ -13,17 +26,32 @@ export interface AuthState {
   redirectTo?: string;
 }
 
+function parseAccountType(value: FormDataEntryValue | null): AccountType | null {
+  if (typeof value !== "string") return null;
+  return ACCOUNT_TYPES.includes(value as AccountType)
+    ? (value as AccountType)
+    : null;
+}
+
+function generateSchoolCode(): string {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < 8; i++) {
+    code += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return code;
+}
+
 export async function signup(
   _prevState: AuthState,
   formData: FormData,
 ): Promise<AuthState> {
+  const accountType = parseAccountType(formData.get("account_type"));
   const email = (formData.get("email") as string)?.trim();
   const password = formData.get("password") as string;
-  const educationLevel = formData.get("education_level") as EducationLevel;
-  const dreamUniversity = (formData.get("dream_university") as string)?.trim();
 
-  if (!email || !password || !educationLevel || !dreamUniversity) {
-    return { error: "Please fill in all fields." };
+  if (!accountType || !email || !password) {
+    return { error: "Please fill in all required fields." };
   }
 
   if (password.length < 6) {
@@ -38,6 +66,89 @@ export async function signup(
   }
 
   const supabase = await createClient();
+  let schoolId: string | null = null;
+  let schoolCode: string | null = null;
+  let educationLevel: EducationLevel | null = null;
+  let dreamUniversity: string | null = null;
+  let organizationName: string | null = null;
+
+  let pendingSchoolInvite: string | null = null;
+
+  if (accountType === "school") {
+    schoolCode = generateSchoolCode();
+  }
+
+  if (accountType === "student") {
+    educationLevel = formData.get("education_level") as EducationLevel;
+    dreamUniversity = (formData.get("dream_university") as string)?.trim();
+    const inputSchoolCode = (formData.get("school_code") as string)?.trim();
+    const inviteCode = (formData.get("invite_code") as string)?.trim();
+    let linkedViaInvite = false;
+
+    if (!educationLevel || !dreamUniversity) {
+      return { error: "Please fill in all student fields." };
+    }
+
+    if (inviteCode) {
+      const invite = await validateSchoolInvite(supabase, inviteCode);
+      if (!invite) {
+        return {
+          error:
+            "That invite code is invalid, expired, or already used up. Ask your school for a new one.",
+        };
+      }
+      schoolId = invite.schoolId;
+      pendingSchoolInvite = normalizeInviteCode(inviteCode);
+      linkedViaInvite = true;
+    }
+
+    if (inputSchoolCode) {
+      const schoolResult = await resolveSchoolByCode(supabase, inputSchoolCode);
+      if (!schoolResult) {
+        return {
+          error:
+            "That school code was not found. Ask your school for their OpportunityHub code, or leave it blank.",
+        };
+      }
+      if (schoolId && schoolId !== schoolResult.schoolId) {
+        return {
+          error:
+            "Invite code and school code do not match the same school. Use one or the other.",
+        };
+      }
+      schoolId = schoolResult.schoolId;
+      if (schoolResult.studentsInviteOnly && !linkedViaInvite) {
+        return {
+          error:
+            "This school only accepts students with an invite code. Ask your school for a personal invite.",
+        };
+      }
+    }
+  } else {
+    organizationName = (formData.get("organization_name") as string)?.trim();
+    if (!organizationName) {
+      return {
+        error:
+          accountType === "school"
+            ? "Please enter your school name."
+            : "Please enter your organization name.",
+      };
+    }
+  }
+
+  // Check if an account with this email already exists
+  try {
+    const { data: emailTaken } = await supabase.rpc("check_email_exists", {
+      lookup_email: email,
+    });
+    if (emailTaken === true) {
+      return {
+        error: "An account with this email already exists. Please log in instead.",
+      };
+    }
+  } catch {
+    // If RPC is not created yet, fall through to Supabase auth check
+  }
 
   let data;
   let error;
@@ -48,8 +159,13 @@ export async function signup(
       password,
       options: {
         data: {
-          education_level: educationLevel,
-          dream_universities: dreamUniversity,
+          account_type: accountType,
+          organization_name: organizationName ?? undefined,
+          education_level: educationLevel ?? undefined,
+          dream_universities: dreamUniversity ?? undefined,
+          school_id: schoolId ?? undefined,
+          school_code: schoolCode ?? undefined,
+          pending_school_invite: pendingSchoolInvite ?? undefined,
         },
       },
     }));
@@ -61,30 +177,71 @@ export async function signup(
   }
 
   if (error) {
-    return { error: error.message };
+    const rawMsg = (error.message || "").trim();
+    if (
+      rawMsg.toLowerCase().includes("already registered") ||
+      rawMsg.toLowerCase().includes("user already exists")
+    ) {
+      return {
+        error: "An account with this email already exists. Please log in instead.",
+      };
+    }
+
+    if (
+      rawMsg === "{}" ||
+      !rawMsg ||
+      rawMsg.toLowerCase().includes("error sending confirmation") ||
+      rawMsg.toLowerCase().includes("unexpected_failure")
+    ) {
+      return {
+        error:
+          "Unable to send confirmation email. Please check your Resend SMTP settings and verified domain in Supabase Dashboard, or disable 'Confirm email' in Authentication → Providers → Email.",
+      };
+    }
+
+    return { error: rawMsg };
   }
 
-  if (!data.user) {
+  if (!data?.user) {
     return { error: "Could not create account. Please try again." };
   }
 
-  // When email confirmation is off, we have a session and can upsert directly.
-  // When confirmation is on, the DB trigger creates the profile from auth metadata.
+  // Supabase returns an empty identities array when user enumeration protection is on
+  // and the email is already registered.
+  if (Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+    return {
+      error: "An account with this email already exists. Please log in instead.",
+    };
+  }
+
   if (data.session) {
-    const { error: profileError } = await supabase.from("profiles").upsert(
-      {
-        id: data.user.id,
-        email,
-        education_level: educationLevel,
-        dream_universities: dreamUniversity,
-      },
-      { onConflict: "id" },
-    );
+    const upsertRow: Record<string, unknown> = {
+      id: data.user.id,
+      email,
+      account_type: accountType,
+      organization_name: organizationName,
+      education_level: educationLevel,
+      dream_universities: dreamUniversity,
+      school_id: schoolId,
+    };
+
+    if (accountType === "school" && schoolCode) {
+      upsertRow.school_code = schoolCode;
+    }
+
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .upsert(upsertRow, { onConflict: "id" });
 
     if (profileError) {
       return {
-        error: `Account created but profile save failed: ${profileError.message}. Run supabase/complete-schema.sql in the Supabase SQL Editor.`,
+        error: `Account created but profile save failed: ${profileError.message}. Run supabase/migrate-account-types.sql in the Supabase SQL Editor.`,
       };
+    }
+
+    if (accountType === "student" && pendingSchoolInvite) {
+      await redeemSchoolInvite(supabase, pendingSchoolInvite);
+      await supabase.auth.updateUser({ data: { pending_school_invite: null } });
     }
   }
 
@@ -96,13 +253,17 @@ export async function signup(
   }
 
   revalidatePath("/", "layout");
-  return { redirectTo: "/dashboard" };
+  if (accountType === "student") {
+    return { redirectTo: "/onboarding" };
+  }
+  return { redirectTo: dashboardPathFor(accountType) };
 }
 
 export async function login(
   _prevState: AuthState,
   formData: FormData,
 ): Promise<AuthState> {
+  const expectedType = parseAccountType(formData.get("account_type"));
   const email = (formData.get("email") as string)?.trim();
   const password = formData.get("password") as string;
 
@@ -134,18 +295,102 @@ export async function login(
   }
 
   if (error) {
-    return { error: error.message };
+    const rawMsg = (error.message || "").trim();
+    if (rawMsg.toLowerCase().includes("email not confirmed")) {
+      return {
+        error:
+          "Email not confirmed yet. Check your email for the confirmation link, or disable 'Confirm email' in Supabase Dashboard (Authentication → Providers → Email).",
+      };
+    }
+    if (rawMsg === "{}" || !rawMsg) {
+      return {
+        error: "Login failed. Please check your credentials or network connection.",
+      };
+    }
+    return { error: rawMsg };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Could not verify your session. Please try again." };
+  }
+
+  let { data: profile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+  const accountType: AccountType =
+    (profile?.account_type as AccountType | undefined) ??
+    (meta.account_type as AccountType | undefined) ??
+    expectedType ??
+    "student";
+
+  // Self-heal: if profile row is missing in Supabase, create it immediately
+  if (!profile) {
+    const upsertRow: Record<string, unknown> = {
+      id: user.id,
+      email: user.email || email,
+      account_type: accountType,
+      organization_name: meta.organization_name || null,
+      education_level: meta.education_level || null,
+      dream_universities: meta.dream_universities || null,
+      school_id: meta.school_id || null,
+      school_code:
+        accountType === "school"
+          ? (meta.school_code as string | undefined) || generateSchoolCode()
+          : null,
+    };
+    await supabase.from("profiles").upsert(upsertRow, { onConflict: "id" });
+  }
+
+  if (expectedType && accountType !== expectedType) {
+    await supabase.auth.signOut();
+    const label =
+      expectedType === "school"
+        ? "a school"
+        : expectedType === "organization"
+          ? "an organization"
+          : "a student";
+    return {
+      error: `This account is not registered as ${label}. Use the correct login page or sign up for the right account type.`,
+    };
+  }
+
+  if (accountType === "student") {
+    await applyPendingSchoolInviteForUser();
   }
 
   revalidatePath("/", "layout");
-  return { redirectTo: "/dashboard" };
+
+  if (accountType === "student") {
+    const { data: studentProfile } = await supabase
+      .from("profiles")
+      .select("onboarding_completed")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (studentProfile?.onboarding_completed === false) {
+      return { redirectTo: "/onboarding" };
+    }
+  }
+
+  return { redirectTo: dashboardPathFor(accountType) };
 }
 
-export async function logout() {
+export async function logout(formData?: FormData) {
+  const accountType = formData
+    ? parseAccountType(formData.get("account_type"))
+    : null;
   const supabase = await createClient();
   await supabase.auth.signOut();
   revalidatePath("/", "layout");
-  redirect("/login");
+  redirect(accountType ? loginPathFor(accountType) : "/login");
 }
 
 export async function updateProfile(
@@ -167,16 +412,36 @@ export async function updateProfile(
   const subjects = (formData.get("subjects") as string)?.trim() || null;
   const interests = (formData.get("interests") as string)?.trim() || null;
   const careerInterests = (formData.get("career_interests") as string)?.trim() || null;
+  const emailRemindersRaw = formData.get("email_reminders");
+  const emailReminders =
+    emailRemindersRaw !== null
+      ? emailRemindersRaw === "true" || emailRemindersRaw === "on"
+      : undefined;
+
+  const newsletterSubscribedRaw = formData.get("newsletter_subscribed");
+  const newsletterSubscribed =
+    newsletterSubscribedRaw !== null
+      ? newsletterSubscribedRaw === "true" || newsletterSubscribedRaw === "on"
+      : undefined;
+
+  const updatePayload: Record<string, unknown> = {
+    education_level: educationLevel || null,
+    dream_universities: dreamUniversities || null,
+    subjects,
+    interests,
+    career_interests: careerInterests,
+  };
+
+  if (emailReminders !== undefined) {
+    updatePayload.email_reminders = emailReminders;
+  }
+  if (newsletterSubscribed !== undefined) {
+    updatePayload.newsletter_subscribed = newsletterSubscribed;
+  }
 
   const { error } = await supabase
     .from("profiles")
-    .update({
-      education_level: educationLevel || null,
-      dream_universities: dreamUniversities || null,
-      subjects,
-      interests,
-      career_interests: careerInterests,
-    })
+    .update(updatePayload)
     .eq("id", user.id);
 
   if (error) {
@@ -188,7 +453,7 @@ export async function updateProfile(
   return { success: "Profile updated successfully." };
 }
 
-export async function getProfile() {
+export const getProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient();
 
   const {
@@ -199,7 +464,7 @@ export async function getProfile() {
     return null;
   }
 
-  const { data: profile, error } = await supabase
+  let { data: profile, error } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
@@ -210,5 +475,155 @@ export async function getProfile() {
     return null;
   }
 
-  return profile;
+  if (!profile) {
+    const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+    const accountType: AccountType =
+      (meta.account_type as AccountType | undefined) ?? "student";
+    const newProfile: Record<string, unknown> = {
+      id: user.id,
+      email: user.email || "",
+      account_type: accountType,
+      organization_name: meta.organization_name || null,
+      education_level: meta.education_level || null,
+      dream_universities: meta.dream_universities || null,
+      school_id: meta.school_id || null,
+      school_code:
+        accountType === "school"
+          ? (meta.school_code as string | undefined) || generateSchoolCode()
+          : null,
+    };
+    const { data: created } = await supabase
+      .from("profiles")
+      .upsert(newProfile, { onConflict: "id" })
+      .select("*")
+      .maybeSingle();
+
+    profile = created ?? newProfile;
+  }
+
+  // Auto-heal missing school_code for schools
+  if (profile.account_type === "school" && !profile.school_code) {
+    const newCode = generateSchoolCode();
+    await supabase.from("profiles").update({ school_code: newCode }).eq("id", user.id);
+    profile.school_code = newCode;
+  }
+
+  if (profile.account_type === "student") {
+    if (!profile.school_id && user.user_metadata?.school_id) {
+      const metaSchoolId = user.user_metadata.school_id as string;
+      await supabase.from("profiles").update({ school_id: metaSchoolId }).eq("id", user.id);
+      profile.school_id = metaSchoolId;
+    }
+    await applyPendingSchoolInviteForUser();
+  }
+
+  let schoolName: string | null = null;
+  if (profile.school_id) {
+    const { data: schoolProfile } = await supabase
+      .from("profiles")
+      .select("organization_name")
+      .eq("id", profile.school_id)
+      .maybeSingle();
+    schoolName = schoolProfile?.organization_name ?? null;
+  }
+
+  const normalized: Profile = {
+    ...profile,
+    account_type: (profile.account_type ?? "student") as AccountType,
+    students_invite_only: profile.students_invite_only ?? false,
+    school_name: schoolName,
+  };
+
+  return normalized;
+});
+
+export async function linkSchoolToStudent(
+  _prevState: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "You must be logged in." };
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("account_type, school_id")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profile?.account_type !== "student") {
+    return { error: "Only student accounts can link to a school." };
+  }
+
+  const schoolCode = (formData.get("school_code") as string)?.trim();
+  const inviteCode = (formData.get("invite_code") as string)?.trim();
+
+  if (!schoolCode && !inviteCode) {
+    return { error: "Please enter a school code or invite code." };
+  }
+
+  let targetSchoolId: string | null = null;
+  let linkedViaInvite = false;
+  let pendingInvite: string | null = null;
+
+  if (inviteCode) {
+    const invite = await validateSchoolInvite(supabase, inviteCode);
+    if (!invite) {
+      return {
+        error:
+          "That invite code is invalid, expired, or already used up. Ask your school for a new one.",
+      };
+    }
+    targetSchoolId = invite.schoolId;
+    pendingInvite = normalizeInviteCode(inviteCode);
+    linkedViaInvite = true;
+  }
+
+  if (schoolCode) {
+    const schoolResult = await resolveSchoolByCode(supabase, schoolCode);
+    if (!schoolResult) {
+      return {
+        error:
+          "That school code was not found. Ask your school for their OpportunityHub code.",
+      };
+    }
+    if (targetSchoolId && targetSchoolId !== schoolResult.schoolId) {
+      return {
+        error: "Invite code and school code do not match the same school.",
+      };
+    }
+    targetSchoolId = schoolResult.schoolId;
+    if (schoolResult.studentsInviteOnly && !linkedViaInvite) {
+      return {
+        error:
+          "This school requires a one-time invite code. Please ask your school for a student invite.",
+      };
+    }
+  }
+
+  if (!targetSchoolId) {
+    return { error: "Could not identify school." };
+  }
+
+  const { error: updateError } = await supabase
+    .from("profiles")
+    .update({ school_id: targetSchoolId })
+    .eq("id", user.id);
+
+  if (updateError) {
+    return { error: `Failed to link school: ${updateError.message}` };
+  }
+
+  if (pendingInvite) {
+    await redeemSchoolInvite(supabase, pendingInvite);
+  }
+
+  revalidatePath("/profile");
+  revalidatePath("/dashboard");
+  return { success: "School linked successfully!" };
 }

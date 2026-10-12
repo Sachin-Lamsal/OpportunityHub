@@ -120,9 +120,17 @@ export default async function DashboardPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-            4. AI suggestions
-          </h2>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              4. AI Advisor & Guidance
+            </h2>
+            <Link
+              href="/ai-suggestions"
+              className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+            >
+              Talk to Advisor →
+            </Link>
+          </div>
           <AISuggestionsPanel compact />
         </section>
 

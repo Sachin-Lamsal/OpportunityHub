@@ -15,13 +15,26 @@ Built for NEB, IGCSE, AS, and A-Level students preparing university portfolios.
 
 ## Features
 
-- Sign up / log in with education level and dream university
-- Browse and filter opportunities (search, subject, type, deadline, format)
-- Save opportunities to a personal list
-- Log portfolio activities by category
+### Students
+
+- Sign up / log in with education level and dream university (optional school or invite code)
+- Browse and filter opportunities (search, subject, type, deadline, format, verification status)
+- Save opportunities and optional deadline email reminders
+- Log portfolio activities by category and onboarding wizard
 - Rule-based portfolio strength score (6 categories)
-- AI suggestions for next steps and opportunity picks (optional)
+- AI suggestions, AI advisor chat, and per-opportunity AI detail generation (optional)
 - CV builder with copy-to-clipboard and optional AI enhancement
+
+### Schools and organizations
+
+- Publish opportunities manually (`/opportunities/new`) — listed as **verified** with `source_type: manual`
+- Ingest from a URL or poster (`/opportunities/ingest`) — saved as **unverified** until reviewed
+- Verify or reject ingested listings; public publisher profiles at `/school/[id]` and `/org/[id]`
+- Schools: invite codes, linked student roster, view student activity summaries
+
+### Account portals
+
+Use `/login` or `/signup` to choose **Student**, **School**, or **Organization**, or go directly to `/login/student`, `/login/school`, or `/login/organization`.
 
 ## Quick start (local)
 
@@ -37,11 +50,14 @@ cp .env.local.example .env.local
 
 1. Create a project at [supabase.com](https://supabase.com)
 2. Copy **Project URL** and **anon key** into `.env.local`
-3. In **SQL Editor**, run:
+3. In **SQL Editor**, run **`supabase/setup-all.sql`** once (recommended), *or*:
    - `supabase/complete-schema.sql` (all tables)
    - `supabase/migrate-opportunity-ai-fields.sql` (AI detail columns — if you already ran an older schema)
+   - `supabase/migration-opportunity-ai-enrich-rpc.sql` (student AI enrich saves — required for **Generate AI details** on strict RLS)
    - `supabase/migrate-ai-usage.sql` (per-user AI credit tracking)
    - `supabase/seed-opportunities.sql` (sample data)
+
+   See `supabase/README.md` for the full incremental migration order.
 4. **Authentication → Providers → Email** — turn off **Confirm email** for easier local testing
 
 ### 3. Run
@@ -64,7 +80,7 @@ Open [http://localhost:3000](http://localhost:3000)
 |---------|-------|----------|
 | Suggestions | Dashboard, `/ai-suggestions` | Picks opportunities from your database |
 | CV enhance | `/cv-builder` | Bullet points from your activities |
-| Opportunity details | Each opportunity page | Generates prep resources, steps, timeline — **saved to Supabase** |
+| Opportunity details | Each opportunity page | Generates prep resources, steps, timeline — **saved via Supabase RPC** (whitelist columns only) |
 
 **Opportunity enrichment flow:**
 
@@ -97,21 +113,31 @@ npm run test:gemini
 
 ### AI credits (per user)
 
-Each logged-in user gets a **monthly credit budget** so one person cannot exhaust your Gemini quota:
+Each logged-in user gets a **monthly talk budget** (default **10** via `STUDENT_AI_TALKS_LIMIT` or `AI_TALKS_LIMIT`), split across:
 
-| Tier | Default credits/month | Model quality |
-|------|----------------------|---------------|
-| Main AI | 8 | Best (gemini-2.0-flash) |
-| Standard AI | 15 | Lighter model |
-| Basic AI | 25 | Shortest answers |
+| Tier | Default share | Models |
+|------|---------------|--------|
+| Premium | 6 | gemini-2.0-flash, gemini-2.5-flash |
+| Standard | 4 | gemini-2.0-flash-lite, gemini-2.5-flash-lite |
 
-- Requests start on **Main AI** and automatically move down when that tier runs out.
+- Requests use **premium** first, then **standard**; then fallback rules apply.
 - **Page refresh does not use credits** — only clicking AI buttons does.
 - Saved opportunity details load from Supabase without calling Gemini.
 - Credits reset on the 1st of each month (UTC).
-- Override limits with `AI_TIER_PREMIUM_LIMIT`, `AI_TIER_STANDARD_LIMIT`, `AI_TIER_BASIC_LIMIT` in env.
+- Override with `AI_TIER_PREMIUM_LIMIT` and `AI_TIER_STANDARD_LIMIT`.
 
 Run `supabase/migrate-ai-usage.sql` in Supabase if credits are not tracking.
+
+**Note:** URL/poster **ingestion** OCR and formatting call Gemini outside this quota.
+
+### Email
+
+| Type | Provider |
+|------|----------|
+| Signup confirmation, password reset | **Supabase Auth** (optional **Resend SMTP** in Supabase Dashboard — not configured in this repo) |
+| Saved-opportunity deadline reminders | **Brevo** (`BREVO_*` env) via `/api/cron/reminders` |
+
+For production reminders, set `SUPABASE_SERVICE_ROLE_KEY` and `CRON_SECRET` on Vercel.
 
 ## Deploy to Vercel (step by step)
 
@@ -220,15 +246,57 @@ See `.env.local.example` for all variables.
 
 | Table | Purpose |
 |-------|---------|
-| `profiles` | User profile (education, dream university, interests) |
-| `opportunities` | Opportunity listings |
-| `saved_opportunities` | User bookmarks |
+| `profiles` | User profile (account type, education, school link, org/school settings) |
+| `opportunities` | Listings (verification, source type, AI enrichment fields) |
+| `saved_opportunities` | User bookmarks and reminder preferences |
 | `activities` | Portfolio activity log |
+| `school_invite_codes` | School invite redemption |
 | `ai_user_usage` | Per-user monthly AI credit counters |
+| `opportunity_comments` / `opportunity_reviews` | Community on listing pages |
+| `organization_follows` | Follow school/org publishers |
+
+**Verification:** Ingested listings are `unverified`; manual publisher forms are `verified` with `source_type: manual`. See `migration-ingestion-and-verification.sql`.
 
 ## MVP limits
 
 Designed for ~10–50 users on free tiers. No custom ML — AI uses Gemini API only when configured.
+
+## Your deployment checklist (manual steps)
+
+The app code is ready when `npm run build` passes. You still need to configure services outside the repo:
+
+### 1. Supabase
+
+1. Create a project at [supabase.com](https://supabase.com).
+2. **SQL Editor → Run** `supabase/setup-all.sql` once (recommended).
+3. **Authentication → URL configuration:** set Site URL and add `https://<your-domain>/auth/callback` (and localhost for dev).
+4. **Authentication → Email:** disable **Confirm email** for local dev, or configure **SMTP** (e.g. Resend) for production.
+5. Copy **Project URL**, **anon key**, and (for crons) **service role key** into env.
+
+Incremental upgrades: see `supabase/README.md` (migrations 1–12).
+
+### 2. Local environment
+
+```bash
+cp .env.local.example .env.local
+# Fill NEXT_PUBLIC_SUPABASE_*, NEXT_PUBLIC_SITE_URL, GEMINI_API_KEY (optional)
+npm install && npm run dev
+```
+
+Validate with **`docs/SMOKE-TEST.md`**.
+
+### 3. Vercel
+
+1. Import the GitHub repo; set all env vars from `.env.local.example` for **Production**.
+2. Set `NEXT_PUBLIC_SITE_URL` to the Vercel URL (then update Supabase redirect URLs).
+3. Set `SUPABASE_SERVICE_ROLE_KEY`, `BREVO_*`, and `CRON_SECRET` before relying on crons.
+4. Deploy; confirm `/api/cron/reminders` and `/api/cron/newsletter` in project **Cron** tab (`vercel.json`).
+
+### 4. Optional but recommended
+
+- `npm run test:gemini` after adding `GEMINI_API_KEY`
+- Brevo: verify sender domain for `BREVO_FROM_EMAIL`
+- Monitor Supabase logs for RLS errors after first real users
 
 ## License
 

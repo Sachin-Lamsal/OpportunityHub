@@ -14,12 +14,8 @@ alter table public.opportunities
 comment on column public.opportunities.prep_resources is 'Books, links, practice materials — stored for reuse';
 comment on column public.opportunities.ai_enriched_at is 'Last time Gemini enriched this row';
 
--- Allow authenticated users to save AI enrichments (MVP — tighten with service role in production)
+-- Deprecated: broad UPDATE policy replaced by save_opportunity_ai_enrichment RPC.
+-- Run supabase/migration-opportunity-ai-enrich-rpc.sql instead.
 drop policy if exists "Authenticated users can enrich opportunities" on public.opportunities;
-create policy "Authenticated users can enrich opportunities"
-  on public.opportunities for update
-  to authenticated
-  using (true)
-  with check (true);
 
 notify pgrst, 'reload schema';

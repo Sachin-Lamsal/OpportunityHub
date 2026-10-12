@@ -1,44 +1,62 @@
-import type { Activity, Opportunity, Profile } from "@/lib/types";
+import type { Activity, Profile } from "@/lib/types";
 import type { AISuggestionResult } from "@/lib/ai/prompts";
 import { getWeakestCategories, calculatePortfolioScores } from "@/lib/portfolio/score";
 
 export function getFallbackSuggestions(
   profile: Profile | null,
   activities: Activity[],
-  opportunities: Opportunity[],
+  _opportunities?: unknown[],
 ): AISuggestionResult {
   const scores = calculatePortfolioScores(activities);
   const weakCategories = getWeakestCategories(scores, 3);
 
-  const explanation =
-    activities.length === 0
-      ? "You're just getting started. Add a few activities and explore opportunities that match your goals."
-      : weakCategories.length > 0
-        ? `You have ${activities.length} activities logged. Focus on strengthening ${weakCategories.join(", ")} to balance your portfolio.`
-        : `You have a solid spread across ${activities.length} activities. Keep exploring new opportunities.`;
+  const strongCategories = Object.entries(scores)
+    .filter(([, score]) => score >= 3)
+    .map(([cat]) => cat);
 
-  const suggestedOpportunities = opportunities.slice(0, 3).map((o) => ({
-    opportunityId: o.id,
-    title: o.title,
-    reason: `Matches your ${profile?.education_level ?? "current"} level and supports portfolio building in ${o.subject_area ?? "multiple areas"}.`,
-  }));
+  let explanation: string;
+  if (activities.length === 0) {
+    explanation =
+      "You haven't logged any activities yet. Starting early with 2–3 regular commitments gives you a strong foundation for university applications.";
+  } else if (weakCategories.length > 0) {
+    explanation = `You have ${activities.length} activit${
+      activities.length === 1 ? "y" : "ies"
+    } logged. Your portfolio is growing, but admissions officers look for well-rounded profiles — focus on building up ${weakCategories.join(
+      ", ",
+    )}.`;
+  } else {
+    explanation = `Great job! You have ${activities.length} activities with balanced coverage across categories. Keep deepening leadership and tangible outcomes.`;
+  }
 
   const nextSteps: string[] = [];
 
   if (activities.length === 0) {
-    nextSteps.push("Add at least one activity you've already completed to your portfolio.");
+    nextSteps.push("Log your first activity in the Portfolio section (a school club, course project, or volunteer day).");
+  } else if (weakCategories.length > 0) {
+    nextSteps.push(`Start an initiative or join a program in ${weakCategories[0]} to round out your profile.`);
   }
 
-  if (weakCategories.length > 0) {
-    nextSteps.push(`Look for opportunities in ${weakCategories[0]} to strengthen that category.`);
+  if (profile?.dream_universities) {
+    nextSteps.push(
+      `Align your upcoming projects with standards for ${profile.dream_universities} (e.g. tangible research, competitions, or team leadership).`,
+    );
+  } else {
+    nextSteps.push("Specify your dream universities and career interests in your profile to refine recommendations.");
   }
 
-  nextSteps.push("Save 2–3 opportunities from the feed that interest you.");
-  nextSteps.push("Update your profile with subjects and career interests for better matches.");
+  nextSteps.push("Document measurable achievements and specific roles in your activities for a stronger CV.");
 
   return {
     explanation,
-    suggestedOpportunities,
+    strengths:
+      strongCategories.length > 0
+        ? strongCategories.map((c) => `Solid activity count in ${c}`)
+        : ["Active student looking to expand experience"],
+    gaps:
+      weakCategories.length > 0
+        ? weakCategories.map((c) => `Needs more entries in ${c}`)
+        : ["Keep aiming for higher leadership responsibilities"],
+    suggestedOpportunities: [],
     nextSteps: nextSteps.slice(0, 3),
   };
 }

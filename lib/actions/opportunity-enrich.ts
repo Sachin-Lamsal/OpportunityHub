@@ -127,14 +127,14 @@ export async function enrichOpportunityWithAI(
     updatePayload.difficulty_level = enrichment.difficulty_level;
   }
 
-  const { error } = await supabase
-    .from("opportunities")
-    .update(updatePayload)
-    .eq("id", opportunityId);
+  const { error } = await supabase.rpc("save_opportunity_ai_enrichment", {
+    opp_id: opportunityId,
+    patch: updatePayload,
+  });
 
   if (error) {
     return {
-      error: `Could not save enriched data: ${error.message}. Run supabase/migrate-opportunity-ai-fields.sql`,
+      error: `Could not save enriched data: ${error.message}. Run supabase/migration-opportunity-ai-enrich-rpc.sql in Supabase SQL Editor.`,
     };
   }
 

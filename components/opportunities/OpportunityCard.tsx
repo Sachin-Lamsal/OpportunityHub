@@ -4,6 +4,8 @@ import { formatDate, formatDeadline } from "@/lib/utils/format";
 import { Card } from "@/components/ui/Card";
 import SaveOpportunityButton from "@/components/opportunities/SaveOpportunityButton";
 
+import VerificationBadge from "@/components/opportunities/VerificationBadge";
+
 interface OpportunityCardProps {
   opportunity: Opportunity;
   isSaved?: boolean;
@@ -20,6 +22,10 @@ export default function OpportunityCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
+            <VerificationBadge
+              isVerified={opportunity.is_verified}
+              status={opportunity.verification_status}
+            />
             <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700">
               {opportunity.type}
             </span>

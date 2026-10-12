@@ -8,28 +8,21 @@ export interface AiTier {
   temperature: number;
 }
 
-/** Best → weakest. Users start on premium and downgrade when that tier is exhausted. */
+/** Primary model first, then smaller fallback model before offline rule-based fallback */
 export const AI_TIERS: readonly AiTier[] = [
   {
     id: "premium",
-    label: "Main AI",
+    label: "Primary Model (Flash)",
     models: ["gemini-2.0-flash", "gemini-2.5-flash"],
-    maxOutputTokens: 4096,
-    temperature: 0.2,
-  },
-  {
-    id: "standard",
-    label: "Standard AI",
-    models: ["gemini-2.0-flash-lite", "gemini-2.5-flash-lite"],
     maxOutputTokens: 2048,
     temperature: 0.2,
   },
   {
-    id: "basic",
-    label: "Basic AI",
-    models: ["gemini-2.0-flash-lite"],
+    id: "standard",
+    label: "Fallback Model (Flash-Lite)",
+    models: ["gemini-2.0-flash-lite", "gemini-2.5-flash-lite"],
     maxOutputTokens: 1024,
-    temperature: 0.1,
+    temperature: 0.2,
   },
 ] as const;
 
@@ -38,12 +31,34 @@ function parseLimit(value: string | undefined, fallback: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+export const DEFAULT_STUDENT_TOTAL_TALKS = 10;
+
 export function getTierLimits(): Record<AiTierId, number> {
+  const totalTalks = parseLimit(
+    process.env.STUDENT_AI_TALKS_LIMIT ?? process.env.AI_TALKS_LIMIT,
+    DEFAULT_STUDENT_TOTAL_TALKS,
+  );
+
+  const premiumLimit = parseLimit(
+    process.env.AI_TIER_PREMIUM_LIMIT,
+    Math.max(1, Math.round(totalTalks * 0.6)), // 6 of 10 by default
+  );
+
+  const standardLimit = parseLimit(
+    process.env.AI_TIER_STANDARD_LIMIT,
+    Math.max(1, totalTalks - premiumLimit), // 4 of 10 by default
+  );
+
   return {
-    premium: parseLimit(process.env.AI_TIER_PREMIUM_LIMIT, 8),
-    standard: parseLimit(process.env.AI_TIER_STANDARD_LIMIT, 15),
-    basic: parseLimit(process.env.AI_TIER_BASIC_LIMIT, 25),
+    premium: premiumLimit,
+    standard: standardLimit,
+    basic: 0,
   };
+}
+
+export function getTotalTalksLimit(): number {
+  const limits = getTierLimits();
+  return limits.premium + limits.standard + limits.basic;
 }
 
 export function getTierById(id: AiTierId): AiTier {

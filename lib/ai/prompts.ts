@@ -1,6 +1,8 @@
 export interface AISuggestionResult {
   explanation: string;
-  suggestedOpportunities: {
+  strengths?: string[];
+  gaps?: string[];
+  suggestedOpportunities?: {
     opportunityId: string;
     title: string;
     reason: string;
@@ -13,41 +15,75 @@ export interface AICVEnhancement {
   summary: string;
 }
 
+export interface ChatTurn {
+  role: "user" | "model";
+  text: string;
+}
+
 export function buildSuggestionsPrompt(
   profileSummary: string,
   activitiesSummary: string,
-  opportunitiesSummary: string,
 ): string {
-  return `You are a helpful advisor for secondary school students in Kathmandu, Nepal building university portfolios.
+  return `You are a helpful university admissions and portfolio mentor for secondary school students in Kathmandu, Nepal.
+Focus on evaluating the student's portfolio strengths, category coverage, and actionable next steps.
 
 STUDENT PROFILE:
 ${profileSummary}
 
-CURRENT ACTIVITIES:
+CURRENT ACTIVITIES & PORTFOLIO:
 ${activitiesSummary}
-
-AVAILABLE OPPORTUNITIES (pick ONLY from this list — use exact IDs):
-${opportunitiesSummary}
 
 Respond with valid JSON only, no markdown, in this exact shape:
 {
-  "explanation": "1-2 sentence overview of their portfolio situation",
-  "suggestedOpportunities": [
-    { "opportunityId": "uuid-from-list", "title": "exact title", "reason": "one sentence why it fits" }
-  ],
-  "nextSteps": ["step 1", "step 2", "step 3"]
+  "explanation": "2-3 sentence overview of their portfolio status, category balance, and readiness for their target universities",
+  "strengths": ["specific strength 1", "specific strength 2"],
+  "gaps": ["specific area or category to strengthen 1", "specific area to strengthen 2"],
+  "nextSteps": ["actionable step 1", "actionable step 2", "actionable step 3"]
 }
 
 Rules:
-- Suggest exactly 3 opportunities from the provided list only — use exact opportunityId values
-- For each suggestion, reason must name ONE concrete prep action for THAT opportunity (subject skill, document to prepare, or timeline)
-- nextSteps must be specific actions tied to the student's gaps (e.g. "Add a STEM project to portfolio" not "Do better")
-- Give 1 to 3 practical next steps
-- Be encouraging but honest
-- Do not invent opportunities, achievements, dates, or facts not in the data
-- If the student has weak portfolio coverage, say so and point to a matching opportunity from the list
-- Keep language simple for teenagers
-- Focus on connecting the student to real opportunities in the list, not generic motivation`;
+- nextSteps must be specific, concrete actions (e.g. "Draft and submit an independent STEM research paper", "Organize a student club or community project to gain leadership hours")
+- Give exactly 3 practical next steps
+- Be encouraging, realistic, and constructive
+- Do NOT search for or invent opportunity listings or dates
+- Keep language approachable for high school students`;
+}
+
+export function buildAiTalkPrompt(
+  profileSummary: string,
+  activitiesSummary: string,
+  history: ChatTurn[],
+  newMessage: string,
+): string {
+  const historyText = history
+    .slice(-6)
+    .map(
+      (turn) =>
+        `${turn.role === "user" ? "Student" : "AI Advisor"}: ${turn.text}`,
+    )
+    .join("\n\n");
+
+  return `You are an encouraging and knowledgeable university admissions & portfolio advisor for secondary school students in Kathmandu, Nepal.
+You are having a direct conversation with the student.
+
+STUDENT PROFILE:
+${profileSummary}
+
+LOGGED ACTIVITIES & PORTFOLIO:
+${activitiesSummary}
+
+PREVIOUS MESSAGES:
+${historyText ? historyText : "(Starting new conversation)"}
+
+STUDENT'S QUESTION:
+${newMessage}
+
+GUIDELINES:
+- Answer directly, practically, and concisely (2-4 brief paragraphs or concise bullet points).
+- Tailor your response directly to the student's education level, stated subjects, dream universities, and logged activities.
+- Offer realistic advice suitable for Nepali secondary school students (e.g. self-directed projects, local volunteering, academic competitions, essay preparation, portfolio balance).
+- Do NOT search for or list raw database opportunity listings. Focus on mentorship, project ideas, skill building, and university preparation.
+- Maintain a warm, encouraging, teenage-friendly mentorship tone.`;
 }
 
 export function buildCVPrompt(
@@ -90,9 +126,11 @@ export function parseSuggestionsJSON(text: string): AISuggestionResult | null {
 
     return {
       explanation: parsed.explanation,
-      suggestedOpportunities: Array.isArray(parsed.suggestedOpportunities)
-        ? parsed.suggestedOpportunities.slice(0, 3)
+      strengths: Array.isArray(parsed.strengths)
+        ? parsed.strengths.slice(0, 3)
         : [],
+      gaps: Array.isArray(parsed.gaps) ? parsed.gaps.slice(0, 3) : [],
+      suggestedOpportunities: [],
       nextSteps: parsed.nextSteps.slice(0, 3),
     };
   } catch {

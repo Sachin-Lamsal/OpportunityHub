@@ -4,6 +4,9 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { login, type AuthState } from "@/lib/actions/auth";
 import { useActionRedirect } from "@/components/auth/useActionRedirect";
+import type { AccountType } from "@/lib/types";
+import { ACCOUNT_TYPE_LABELS } from "@/lib/constants";
+import { signupPathFor } from "@/lib/auth/account";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import FormMessage from "@/components/ui/FormMessage";
@@ -12,21 +15,25 @@ import { Card } from "@/components/ui/Card";
 const initialState: AuthState = {};
 
 interface LoginFormProps {
+  accountType: AccountType;
   authError?: string;
 }
 
-export default function LoginForm({ authError }: LoginFormProps) {
+export default function LoginForm({ accountType, authError }: LoginFormProps) {
   const [state, formAction, pending] = useActionState(login, initialState);
   useActionRedirect(state.redirectTo);
 
+  const label = ACCOUNT_TYPE_LABELS[accountType];
+
   return (
     <Card>
-      <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
+      <h1 className="text-2xl font-bold text-slate-900">{label} log in</h1>
       <p className="mt-2 text-sm text-slate-600">
-        Log in to your OpportunityHub account.
+        Sign in to your {label.toLowerCase()} account on OpportunityHub.
       </p>
 
       <form action={formAction} className="mt-6 space-y-4">
+        <input type="hidden" name="account_type" value={accountType} />
         <FormMessage error={authError ?? state.error} />
 
         <Input
@@ -52,10 +59,19 @@ export default function LoginForm({ authError }: LoginFormProps) {
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-slate-600">
+      <p className="mt-4 text-center text-sm text-slate-600">
+        <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-700">
+          ← All login options
+        </Link>
+      </p>
+
+      <p className="mt-4 text-center text-sm text-slate-600">
         Don&apos;t have an account?{" "}
-        <Link href="/signup" className="font-medium text-indigo-600 hover:text-indigo-700">
-          Sign up
+        <Link
+          href={signupPathFor(accountType)}
+          className="font-medium text-indigo-600 hover:text-indigo-700"
+        >
+          Sign up as {label.toLowerCase()}
         </Link>
       </p>
     </Card>

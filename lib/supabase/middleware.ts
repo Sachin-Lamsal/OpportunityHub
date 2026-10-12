@@ -1,9 +1,43 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { hasSupabaseEnv } from "@/lib/env";
+import { hasSupabaseEnv, getNormalizedSupabaseUrl, getSupabaseAnonKey } from "@/lib/env";
+import {
+  dashboardPathFor,
+  isOrgAppRoute,
+  isPublicPublisherProfileRoute,
+  isSchoolAppRoute,
+  isStudentAppRoute,
+  canManageOpportunities,
+  studentNeedsOnboardingGate,
+} from "@/lib/auth/account";
+import type { AccountType } from "@/lib/types";
 
-const PUBLIC_ROUTES = ["/", "/login", "/signup", "/auth/callback"];
-const AUTH_ROUTES = ["/login", "/signup"];
+function isPublicRoute(pathname: string): boolean {
+  if (pathname === "/") return true;
+  if (pathname.startsWith("/auth/callback")) return true;
+  if (pathname === "/login" || pathname.startsWith("/login/")) return true;
+  if (pathname === "/signup" || pathname.startsWith("/signup/")) return true;
+  // Opportunities browsing and viewing are public before signing in
+  if (pathname === "/opportunities") return true;
+  if (
+    pathname.startsWith("/opportunities/") &&
+    !pathname.startsWith("/opportunities/new") &&
+    !pathname.endsWith("/edit")
+  ) {
+    return true;
+  }
+  if (isPublicPublisherProfileRoute(pathname)) return true;
+  return false;
+}
+
+function isAuthRoute(pathname: string): boolean {
+  return (
+    pathname === "/login" ||
+    pathname.startsWith("/login/") ||
+    pathname === "/signup" ||
+    pathname.startsWith("/signup/")
+  );
+}
 
 export async function updateSession(request: NextRequest) {
   if (!hasSupabaseEnv()) {
@@ -13,8 +47,8 @@ export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    getNormalizedSupabaseUrl(),
+    getSupabaseAnonKey(),
     {
       cookies: {
         getAll() {
@@ -38,24 +72,84 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
-  const isAuthRoute = AUTH_ROUTES.includes(pathname);
-  const isAuthCallback = pathname.startsWith("/auth/callback");
 
-  if (isAuthCallback) {
+  if (pathname.startsWith("/auth/callback")) {
     return supabaseResponse;
   }
 
-  if (!user && !isPublicRoute) {
+  if (!user && !isPublicRoute(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  if (user && isAuthRoute) {
+  let accountType: AccountType = "student";
+  let onboardingCompleted = true;
+
+  if (user) {
+    const metaType = user.user_metadata?.account_type as AccountType | undefined;
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("account_type, onboarding_completed")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (
+      metaType &&
+      (metaType === "student" ||
+        metaType === "school" ||
+        metaType === "organization")
+    ) {
+      accountType = metaType;
+    } else {
+      accountType = (profile?.account_type as AccountType | undefined) ?? "student";
+    }
+
+    if (accountType === "student") {
+      onboardingCompleted = profile?.onboarding_completed ?? true;
+    }
+  }
+
+  if (user && isAuthRoute(pathname)) {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = dashboardPathFor(accountType);
     return NextResponse.redirect(url);
+  }
+
+  if (user) {
+    if (accountType === "student" && (isSchoolAppRoute(pathname) || isOrgAppRoute(pathname))) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      return NextResponse.redirect(url);
+    }
+
+    if (accountType === "school" && (isStudentAppRoute(pathname) || isOrgAppRoute(pathname))) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/school/dashboard";
+      return NextResponse.redirect(url);
+    }
+
+    if (accountType === "organization" && (isStudentAppRoute(pathname) || isSchoolAppRoute(pathname))) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/org/dashboard";
+      return NextResponse.redirect(url);
+    }
+
+    if (pathname === "/opportunities/new" && !canManageOpportunities(accountType)) {
+      const url = request.nextUrl.clone();
+      url.pathname = dashboardPathFor(accountType);
+      return NextResponse.redirect(url);
+    }
+
+    if (
+      accountType === "student" &&
+      !onboardingCompleted &&
+      studentNeedsOnboardingGate(pathname)
+    ) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/onboarding";
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;

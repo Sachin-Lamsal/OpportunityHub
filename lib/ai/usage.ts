@@ -19,6 +19,9 @@ export interface AiUsageSummary {
   activeTier: AiTierId | "exhausted";
   activeTierLabel: string;
   resetMonth: string;
+  totalLimit: number;
+  totalUsed: number;
+  totalRemaining: number;
   tiers: AiUsageTierSummary[];
 }
 
@@ -126,21 +129,30 @@ export async function getAIUsageSummaryForUser(
   const limits = getTierLimits();
   const active = resolveActiveTier(row);
 
+  const tierSummaries = AI_TIERS.map((tier) => {
+    const used = usedForTier(row, tier.id);
+    const limit = limits[tier.id];
+    return {
+      id: tier.id,
+      label: tier.label,
+      used,
+      limit,
+      remaining: Math.max(0, limit - used),
+    };
+  });
+
+  const totalLimit = tierSummaries.reduce((acc, t) => acc + t.limit, 0);
+  const totalUsed = tierSummaries.reduce((acc, t) => acc + t.used, 0);
+  const totalRemaining = Math.max(0, totalLimit - totalUsed);
+
   return {
     activeTier: active?.id ?? "exhausted",
-    activeTierLabel: active?.label ?? "No credits left",
+    activeTierLabel: active?.label ?? "Offline guidance active",
     resetMonth: row.reset_month,
-    tiers: AI_TIERS.map((tier) => {
-      const used = usedForTier(row, tier.id);
-      const limit = limits[tier.id];
-      return {
-        id: tier.id,
-        label: tier.label,
-        used,
-        limit,
-        remaining: Math.max(0, limit - used),
-      };
-    }),
+    totalLimit,
+    totalUsed,
+    totalRemaining,
+    tiers: tierSummaries,
   };
 }
 
@@ -170,11 +182,13 @@ async function consumeTierCredit(userId: string, tierId: AiTierId): Promise<void
 export interface GenerateWithQuotaResult extends GenerateTextResult {
   tierUsed?: AiTierId;
   tierLabel?: string;
+  quotaExhausted?: boolean;
 }
 
 /**
- * Picks the user's best available tier, calls Gemini once, and deducts one credit
- * only after a successful response.
+ * Picks the user's best available tier, calls Gemini, and deducts one talk
+ * only after a successful response. If the primary model encounters a transient error,
+ * automatically attempts the smaller fallback model before failing.
  */
 export async function generateWithUserQuota(
   userId: string,
@@ -185,22 +199,35 @@ export async function generateWithUserQuota(
 
   if (!tier) {
     const limits = getTierLimits();
-    const total =
-      limits.premium + limits.standard + limits.basic;
+    const total = limits.premium + limits.standard + (limits.basic ?? 0);
     return {
       text: null,
-      error: `You have used all ${total} AI credits for this month. Credits reset on the 1st. Saved opportunity details still load without using credits.`,
+      quotaExhausted: true,
+      error: `You have completed all ${total} of your monthly AI talks. Talks reset on the 1st. Offline rule-based guidance is active below.`,
     };
   }
 
-  const result = await generateTextWithTier(prompt, tier);
+  let result = await generateTextWithTier(prompt, tier);
+  let usedTier = tier;
+
+  // Resilient model fallback: if primary model fails, try the fallback model if standard quota is available
+  if (!result.text && tier.id === "premium") {
+    const fallbackTier = AI_TIERS.find((t) => t.id === "standard");
+    if (fallbackTier && remainingForTier(row, fallbackTier.id) > 0) {
+      const fallbackResult = await generateTextWithTier(prompt, fallbackTier);
+      if (fallbackResult.text) {
+        result = fallbackResult;
+        usedTier = fallbackTier;
+      }
+    }
+  }
 
   if (result.text) {
-    await consumeTierCredit(userId, tier.id);
+    await consumeTierCredit(userId, usedTier.id);
     return {
       ...result,
-      tierUsed: tier.id,
-      tierLabel: tier.label,
+      tierUsed: usedTier.id,
+      tierLabel: usedTier.label,
     };
   }
 
@@ -208,9 +235,8 @@ export async function generateWithUserQuota(
 }
 
 export function formatUsageHint(summary: AiUsageSummary): string {
-  const active = summary.tiers.find((t) => t.id === summary.activeTier);
-  if (!active || summary.activeTier === "exhausted") {
-    return "No AI credits left this month.";
+  if (summary.activeTier === "exhausted" || summary.totalRemaining === 0) {
+    return "Monthly AI talks reached (10/10). Offline portfolio guidance is active.";
   }
-  return `Using ${summary.activeTierLabel} · ${active.remaining} credit${active.remaining === 1 ? "" : "s"} left in this tier`;
+  return `${summary.totalRemaining} of ${summary.totalLimit} AI talks left this month (${summary.activeTierLabel})`;
 }

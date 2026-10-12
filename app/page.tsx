@@ -2,6 +2,9 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import Button from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import HomeHeroSearch from "@/components/home/HomeHeroSearch";
+import CuratedOpportunitySections from "@/components/opportunities/CuratedOpportunitySections";
+import { getCuratedOpportunitySections } from "@/lib/queries/curated-opportunities";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 
 const features = [
@@ -61,7 +64,9 @@ const steps = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const curated = await getCuratedOpportunitySections();
+
   return (
     <>
       <Header variant="public" />
@@ -80,14 +85,42 @@ export default function HomePage() {
               <p className="mt-6 text-lg leading-relaxed text-slate-600">
                 {APP_TAGLINE}
               </p>
-              <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-                <Button href="/signup" size="lg">
-                  Get started — it&apos;s free
+              <HomeHeroSearch />
+              <div className="mt-6 flex flex-col items-center justify-center gap-4 sm:flex-row">
+                <Button href="/opportunities" size="lg">
+                  Browse opportunities
                 </Button>
-                <Button href="/login" variant="outline" size="lg">
+                <Button href="/signup/student" variant="outline" size="lg">
+                  Sign up free
+                </Button>
+                <Button href="/login" variant="ghost" size="lg">
                   Log in
                 </Button>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Curated discovery preview */}
+        <section className="border-b border-slate-200 bg-slate-50/80 py-14 sm:py-16">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6">
+            <div className="mb-8 text-center">
+              <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+                Discover what students are applying to
+              </h2>
+              <p className="mt-2 text-slate-600">
+                Curated rows update from live saves and upcoming deadlines.
+              </p>
+            </div>
+            <CuratedOpportunitySections
+              deadlinesThisWeek={curated.deadlinesThisWeek}
+              popular={curated.popular}
+              featured={curated.featured}
+            />
+            <div className="mt-10 text-center">
+              <Button href="/opportunities" variant="outline" size="lg">
+                Browse full catalog
+              </Button>
             </div>
           </div>
         </section>

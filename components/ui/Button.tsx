@@ -39,6 +39,7 @@ interface LinkButtonProps {
   variant?: ButtonVariant;
   size?: ButtonSize;
   className?: string;
+  title?: string;
   children: ReactNode;
 }
 
@@ -58,8 +59,9 @@ export default function Button({
   );
 
   if (href) {
+    const { title: linkTitle } = props as LinkButtonProps;
     return (
-      <Link href={href} className={classes}>
+      <Link href={href} className={classes} title={linkTitle}>
         {children}
       </Link>
     );

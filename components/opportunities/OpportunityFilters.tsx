@@ -21,6 +21,7 @@ export default function OpportunityFilters() {
   const type = searchParams.get("type") ?? "";
   const deadline = searchParams.get("deadline") ?? "";
   const format = searchParams.get("format") ?? "";
+  const status = searchParams.get("status") ?? "";
 
   const updateParams = useCallback(
     (updates: Record<string, string>) => {
@@ -51,6 +52,7 @@ export default function OpportunityFilters() {
       type: (formData.get("type") as string) ?? "",
       deadline: (formData.get("deadline") as string) ?? "",
       format: (formData.get("format") as string) ?? "",
+      status: (formData.get("status") as string) ?? "",
     });
   }
 
@@ -60,7 +62,7 @@ export default function OpportunityFilters() {
     });
   }
 
-  const hasFilters = q || subject || type || deadline || format;
+  const hasFilters = q || subject || type || deadline || format || status;
 
   return (
     <form
@@ -75,7 +77,7 @@ export default function OpportunityFilters() {
         placeholder="Search title, description, organizer…"
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <FilterSelect
           label="Subject"
           name="subject"
@@ -105,6 +107,15 @@ export default function OpportunityFilters() {
             value: f.value,
             label: f.label,
           }))}
+        />
+        <FilterSelect
+          label="Verification"
+          name="status"
+          value={status}
+          options={[
+            { value: "verified", label: "✓ Verified only" },
+            { value: "unverified", label: "⚠️ Internet sources" },
+          ]}
         />
       </div>
 

@@ -30,6 +30,7 @@ export async function createActivity(
   const description = (formData.get("description") as string)?.trim();
   const date = formData.get("date") as string;
   const notes = (formData.get("notes") as string)?.trim() || null;
+  const opportunityId = (formData.get("opportunity_id") as string)?.trim() || null;
 
   if (!title || !category || !description || !date) {
     return { error: "Please fill in all required fields." };
@@ -46,6 +47,7 @@ export async function createActivity(
     description,
     date,
     notes,
+    opportunity_id: opportunityId,
   });
 
   if (error) {

@@ -25,6 +25,9 @@ export default function Header({ variant = "public" }: HeaderProps) {
         {variant === "public" ? (
           <>
             <nav className="hidden items-center gap-6 md:flex">
+              <Link href="/opportunities" className="text-sm font-medium text-indigo-600 hover:text-indigo-700">
+                Browse Opportunities
+              </Link>
               <a href="#features" className="text-sm text-slate-600 hover:text-slate-900">
                 Features
               </a>
@@ -63,6 +66,13 @@ export default function Header({ variant = "public" }: HeaderProps) {
       {variant === "public" && menuOpen && (
         <div className="border-t border-slate-200 bg-white px-4 py-4 md:hidden">
           <nav className="flex flex-col gap-3">
+            <Link
+              href="/opportunities"
+              className="text-sm font-medium text-indigo-600"
+              onClick={() => setMenuOpen(false)}
+            >
+              Browse Opportunities
+            </Link>
             <a href="#features" className="text-sm text-slate-600" onClick={() => setMenuOpen(false)}>
               Features
             </a>

@@ -48,6 +48,24 @@ export async function getRecentActivities(limit = 5): Promise<Activity[]> {
   return (data ?? []) as Activity[];
 }
 
+/** For schools viewing a linked student's portfolio (RLS must allow). */
+export async function getActivitiesForUser(userId: string): Promise<Activity[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("activities")
+    .select("*")
+    .eq("user_id", userId)
+    .order("date", { ascending: false });
+
+  if (error) {
+    console.error("Failed to fetch student activities:", error.message);
+    return [];
+  }
+
+  return (data ?? []) as Activity[];
+}
+
 export async function getActivityById(id: string): Promise<Activity | null> {
   const supabase = await createClient();
 

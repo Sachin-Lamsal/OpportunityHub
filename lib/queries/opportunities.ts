@@ -7,6 +7,7 @@ export interface OpportunityFilters {
   type?: string;
   deadline?: string;
   format?: string;
+  verificationStatus?: string;
   limit?: number;
 }
 
@@ -24,6 +25,27 @@ function getDeadlineRange() {
     weekEnd: endOfWeek.toISOString().split("T")[0],
     monthEnd: endOfMonth.toISOString().split("T")[0],
   };
+}
+
+export async function getOpportunitiesCreatedByUser(
+  userId: string,
+  limit = 10,
+): Promise<Opportunity[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("opportunities")
+    .select("*")
+    .eq("created_by", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("Failed to load published opportunities:", error.message);
+    return [];
+  }
+
+  return (data ?? []) as Opportunity[];
 }
 
 export async function getOpportunities(
@@ -62,6 +84,12 @@ export async function getOpportunities(
     }
   }
 
+  if (filters.verificationStatus === "verified") {
+    query = query.eq("is_verified", true);
+  } else if (filters.verificationStatus === "unverified") {
+    query = query.eq("is_verified", false);
+  }
+
   if (filters.q) {
     const term = `%${filters.q.trim()}%`;
     query = query.or(
@@ -76,7 +104,13 @@ export async function getOpportunities(
   const { data, error } = await query;
 
   if (error) {
-    console.error("Failed to fetch opportunities:", error.message);
+    if (error.message.includes("fetch failed")) {
+      console.warn(
+        "Supabase connection notice: Unable to reach database host. Check if your Supabase project is paused or check NEXT_PUBLIC_SUPABASE_URL in .env.local.",
+      );
+    } else {
+      console.error("Failed to fetch opportunities:", error.message);
+    }
     return [];
   }
 
@@ -93,7 +127,9 @@ export async function getOpportunityById(id: string): Promise<Opportunity | null
     .single();
 
   if (error) {
-    console.error("Failed to fetch opportunity:", error.message);
+    if (!error.message.includes("fetch failed")) {
+      console.error("Failed to fetch opportunity:", error.message);
+    }
     return null;
   }
 
@@ -164,4 +200,35 @@ export async function isOpportunitySaved(opportunityId: string): Promise<boolean
     .maybeSingle();
 
   return !!data;
+}
+
+export interface SavedOpportunityInfo {
+  saved: boolean;
+  remindDeadline: boolean;
+}
+
+export async function getSavedOpportunityInfo(
+  opportunityId: string,
+): Promise<SavedOpportunityInfo> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { saved: false, remindDeadline: true };
+
+  const { data } = await supabase
+    .from("saved_opportunities")
+    .select("id, remind_deadline")
+    .eq("user_id", user.id)
+    .eq("opportunity_id", opportunityId)
+    .maybeSingle();
+
+  if (!data) return { saved: false, remindDeadline: true };
+
+  return {
+    saved: true,
+    remindDeadline: data.remind_deadline ?? true,
+  };
 }

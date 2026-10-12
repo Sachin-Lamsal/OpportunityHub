@@ -4,10 +4,12 @@ import { isGeminiConfigured } from "@/lib/ai/gemini";
 import {
   buildCVPrompt,
   buildSuggestionsPrompt,
+  buildAiTalkPrompt,
   parseCVJSON,
   parseSuggestionsJSON,
   type AICVEnhancement,
   type AISuggestionResult,
+  type ChatTurn,
 } from "@/lib/ai/prompts";
 import { getFallbackSuggestions } from "@/lib/ai/fallback";
 import { generateWithUserQuota } from "@/lib/ai/usage";
@@ -15,12 +17,10 @@ import {
   buildCVFromProfile,
   cvToPlainText,
   summarizeActivitiesForAI,
-  summarizeOpportunitiesForAI,
   summarizeProfileForAI,
 } from "@/lib/cv/generate";
 import { getProfile } from "@/lib/actions/auth";
 import { getActivities } from "@/lib/queries/activities";
-import { getOpportunities } from "@/lib/queries/opportunities";
 import { createClient } from "@/lib/supabase/server";
 
 export interface AIActionResult<T> {
@@ -28,6 +28,15 @@ export interface AIActionResult<T> {
   source: "ai" | "fallback";
   error?: string;
   tierLabel?: string;
+  quotaExhausted?: boolean;
+}
+
+export interface AiTalkResponse {
+  reply: string;
+  source: "ai" | "fallback";
+  tierLabel?: string;
+  error?: string;
+  quotaExhausted?: boolean;
 }
 
 async function getUserId(): Promise<string | null> {
@@ -41,16 +50,15 @@ async function getUserId(): Promise<string | null> {
 export async function getAISuggestions(): Promise<
   AIActionResult<AISuggestionResult>
 > {
-  const [profile, activities, opportunities, userId] = await Promise.all([
+  const [profile, activities, userId] = await Promise.all([
     getProfile(),
     getActivities(),
-    getOpportunities({ limit: 20 }),
     getUserId(),
   ]);
 
   if (!profile || !userId) {
     return {
-      data: getFallbackSuggestions(null, [], opportunities),
+      data: getFallbackSuggestions(null, []),
       source: "fallback",
       error: "Not logged in.",
     };
@@ -58,7 +66,7 @@ export async function getAISuggestions(): Promise<
 
   if (!isGeminiConfigured()) {
     return {
-      data: getFallbackSuggestions(profile, activities, opportunities),
+      data: getFallbackSuggestions(profile, activities),
       source: "fallback",
     };
   }
@@ -66,20 +74,21 @@ export async function getAISuggestions(): Promise<
   const prompt = buildSuggestionsPrompt(
     summarizeProfileForAI(profile),
     summarizeActivitiesForAI(activities),
-    summarizeOpportunitiesForAI(opportunities),
   );
 
   const {
     text: response,
     error: geminiError,
     tierLabel,
+    quotaExhausted,
   } = await generateWithUserQuota(userId, prompt);
 
   if (!response) {
     return {
-      data: getFallbackSuggestions(profile, activities, opportunities),
+      data: getFallbackSuggestions(profile, activities),
       source: "fallback",
-      error: geminiError ?? "AI unavailable. Showing basic suggestions instead.",
+      error: geminiError ?? "AI unavailable. Showing offline portfolio review instead.",
+      quotaExhausted,
     };
   }
 
@@ -87,26 +96,84 @@ export async function getAISuggestions(): Promise<
 
   if (!parsed) {
     return {
-      data: getFallbackSuggestions(profile, activities, opportunities),
+      data: getFallbackSuggestions(profile, activities),
       source: "fallback",
-      error: "Could not parse AI response. Showing basic suggestions.",
+      error: "Could not parse AI response. Showing offline portfolio review.",
     };
   }
 
-  const validIds = new Set(opportunities.map((o) => o.id));
-  parsed.suggestedOpportunities = parsed.suggestedOpportunities.filter((s) =>
-    validIds.has(s.opportunityId),
-  );
+  return { data: parsed, source: "ai", tierLabel };
+}
 
-  if (parsed.suggestedOpportunities.length === 0 && opportunities.length > 0) {
-    parsed.suggestedOpportunities = opportunities.slice(0, 3).map((o) => ({
-      opportunityId: o.id,
-      title: o.title,
-      reason: "Recommended based on your profile — open the page for prep resources.",
-    }));
+export async function sendAiTalkMessage(
+  history: ChatTurn[],
+  newMessage: string,
+): Promise<AiTalkResponse> {
+  const trimmed = newMessage.trim();
+  if (!trimmed) {
+    return {
+      reply: "Please type a question or topic to discuss with your advisor.",
+      source: "fallback",
+      error: "Empty message.",
+    };
   }
 
-  return { data: parsed, source: "ai", tierLabel };
+  const [profile, activities, userId] = await Promise.all([
+    getProfile(),
+    getActivities(),
+    getUserId(),
+  ]);
+
+  if (!profile || !userId) {
+    return {
+      reply: "Please log in to your account to speak with the AI Advisor.",
+      source: "fallback",
+      error: "Not logged in.",
+    };
+  }
+
+  if (!isGeminiConfigured()) {
+    const fallback = getFallbackSuggestions(profile, activities);
+    return {
+      reply: `AI service is currently operating in offline mode.\n\nHere is your profile guidance:\n${fallback.explanation}\n\nNext steps:\n1. ${fallback.nextSteps[0] ?? "Add activities"}\n2. ${fallback.nextSteps[1] ?? "Update profile"}`,
+      source: "fallback",
+      error: "Gemini API key not configured.",
+    };
+  }
+
+  const prompt = buildAiTalkPrompt(
+    summarizeProfileForAI(profile),
+    summarizeActivitiesForAI(activities),
+    history,
+    trimmed,
+  );
+
+  const {
+    text: response,
+    error: geminiError,
+    tierLabel,
+    quotaExhausted,
+  } = await generateWithUserQuota(userId, prompt);
+
+  if (!response) {
+    const fallback = getFallbackSuggestions(profile, activities);
+    const prefix = quotaExhausted
+      ? "You have used all 10 of your monthly AI talks (resets on the 1st of next month)."
+      : "The live AI advisor is temporarily unavailable.";
+
+    return {
+      reply: `${prefix}\n\nAutomated offline portfolio review:\n${fallback.explanation}\n\nRecommended next steps:\n${fallback.nextSteps.map((s, i) => `${i + 1}. ${s}`).join("\n")}`,
+      source: "fallback",
+      error: geminiError,
+      quotaExhausted,
+    };
+  }
+
+  return {
+    reply: response,
+    source: "ai",
+    tierLabel,
+  };
 }
 
 export async function enhanceCVWithAI(): Promise<

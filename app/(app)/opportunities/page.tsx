@@ -6,6 +6,8 @@ import {
   getOpportunities,
   getSavedOpportunityIds,
 } from "@/lib/queries/opportunities";
+import { getCuratedOpportunitySections } from "@/lib/queries/curated-opportunities";
+import CuratedOpportunitySections from "@/components/opportunities/CuratedOpportunitySections";
 
 export const metadata = {
   title: "Opportunities",
@@ -18,6 +20,7 @@ interface OpportunitiesPageProps {
     type?: string;
     deadline?: string;
     format?: string;
+    status?: string;
   }>;
 }
 
@@ -31,22 +34,43 @@ async function OpportunityResults({
   searchParams: OpportunitiesPageProps["searchParams"];
 }) {
   const params = await searchParams;
-  const [opportunities, savedIds] = await Promise.all([
+  const hasFilters =
+    params.q ||
+    params.subject ||
+    params.type ||
+    params.deadline ||
+    params.format ||
+    params.status;
+
+  const [opportunities, savedIds, curated] = await Promise.all([
     getOpportunities({
       q: params.q,
       subject: params.subject,
       type: params.type,
       deadline: params.deadline,
       format: params.format,
+      verificationStatus: params.status,
     }),
     getSavedOpportunityIds(),
+    hasFilters ? Promise.resolve(null) : getCuratedOpportunitySections(),
   ]);
-
-  const hasFilters =
-    params.q || params.subject || params.type || params.deadline || params.format;
 
   return (
     <>
+      {!hasFilters && curated && (
+        <div className="mb-10">
+          <CuratedOpportunitySections
+            deadlinesThisWeek={curated.deadlinesThisWeek}
+            popular={curated.popular}
+            featured={curated.featured}
+            savedIds={savedIds}
+          />
+        </div>
+      )}
+
+      <h2 className="text-lg font-bold text-slate-900 mb-2">
+        {hasFilters ? "Search results" : "All opportunities"}
+      </h2>
       <p className="mb-4 text-sm text-slate-600">
         {opportunities.length} opportunit{opportunities.length === 1 ? "y" : "ies"} found
         {hasFilters ? " matching your filters" : ""}, newest first.

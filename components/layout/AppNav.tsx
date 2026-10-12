@@ -4,16 +4,41 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import LogoutButton from "@/components/auth/LogoutButton";
-import { MAIN_NAV_LINKS, APP_NAME } from "@/lib/constants";
+import {
+  APP_NAME,
+  ORG_NAV_LINKS,
+  SCHOOL_NAV_LINKS,
+  STUDENT_NAV_LINKS,
+} from "@/lib/constants";
+import type { AccountType } from "@/lib/types";
+import { dashboardPathFor } from "@/lib/auth/account";
 
-export default function AppNav() {
+interface AppNavProps {
+  accountType?: AccountType | null;
+  isLoggedIn?: boolean;
+}
+
+const PUBLIC_NAV_LINKS = [
+  { href: "/opportunities", label: "Opportunities" },
+] as const;
+
+function navLinksFor(accountType?: AccountType | null, isLoggedIn = false) {
+  if (!isLoggedIn || !accountType) return PUBLIC_NAV_LINKS;
+  if (accountType === "school") return SCHOOL_NAV_LINKS;
+  if (accountType === "organization") return ORG_NAV_LINKS;
+  return STUDENT_NAV_LINKS;
+}
+
+export default function AppNav({ accountType = "student", isLoggedIn = true }: AppNavProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const links = navLinksFor(accountType, isLoggedIn);
+  const homeHref = isLoggedIn && accountType ? dashboardPathFor(accountType) : "/";
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href={homeHref} className="flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-sm font-bold text-white">
             OH
           </span>
@@ -23,10 +48,10 @@ export default function AppNav() {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
-          {MAIN_NAV_LINKS.map((link) => {
+          {links.map((link) => {
             const isActive =
               pathname === link.href ||
-              (link.href !== "/dashboard" && pathname.startsWith(link.href));
+              (link.href !== homeHref && pathname.startsWith(link.href));
 
             return (
               <Link
@@ -42,7 +67,24 @@ export default function AppNav() {
               </Link>
             );
           })}
-          <LogoutButton />
+          {isLoggedIn ? (
+            <LogoutButton accountType={accountType ?? "student"} />
+          ) : (
+            <div className="ml-2 flex items-center gap-2">
+              <Link
+                href="/login"
+                className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+              >
+                Log in
+              </Link>
+              <Link
+                href="/signup"
+                className="rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-indigo-700 shadow-2xs transition-colors"
+              >
+                Sign up
+              </Link>
+            </div>
+          )}
         </nav>
 
         <button
@@ -64,10 +106,10 @@ export default function AppNav() {
       {menuOpen && (
         <nav className="border-t border-slate-200 bg-white px-4 py-3 md:hidden">
           <ul className="flex flex-col gap-1">
-            {MAIN_NAV_LINKS.map((link) => {
+            {links.map((link) => {
               const isActive =
                 pathname === link.href ||
-                (link.href !== "/dashboard" && pathname.startsWith(link.href));
+                (link.href !== homeHref && pathname.startsWith(link.href));
 
               return (
                 <li key={link.href}>
@@ -85,8 +127,27 @@ export default function AppNav() {
                 </li>
               );
             })}
-            <li className="border-t border-slate-100 pt-2 mt-2">
-              <LogoutButton />
+            <li className="border-t border-slate-100 pt-3 mt-2">
+              {isLoggedIn ? (
+                <LogoutButton accountType={accountType ?? "student"} />
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <Link
+                    href="/login"
+                    onClick={() => setMenuOpen(false)}
+                    className="block text-center rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    Log in
+                  </Link>
+                  <Link
+                    href="/signup"
+                    onClick={() => setMenuOpen(false)}
+                    className="block text-center rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                  >
+                    Sign up
+                  </Link>
+                </div>
+              )}
             </li>
           </ul>
         </nav>

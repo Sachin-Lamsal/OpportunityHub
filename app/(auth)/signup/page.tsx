@@ -1,9 +1,9 @@
-import SignupForm from "@/components/auth/SignupForm";
+import AuthPortalChooser from "@/components/auth/AuthPortalChooser";
 
 export const metadata = {
   title: "Sign up",
 };
 
 export default function SignupPage() {
-  return <SignupForm />;
+  return <AuthPortalChooser mode="signup" />;
 }
