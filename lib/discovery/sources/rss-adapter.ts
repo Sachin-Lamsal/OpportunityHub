@@ -1,3 +1,4 @@
+import { safeFetch } from "@/lib/security/safe-fetch";
 export interface RssDiscoveryResult {
   url: string;
   feedTitle?: string;
@@ -14,14 +15,14 @@ export class RssSourceAdapter {
   async discover(feedUrl: string): Promise<RssDiscoveryResult[]> {
     const results: RssDiscoveryResult[] = [];
     try {
-      const res = await fetch(feedUrl, {
+      const res = await safeFetch(feedUrl, {
+        timeoutMs: 15000,
         headers: {
           "User-Agent": "OpportunityHub-Discovery/1.0",
           Accept: "application/rss+xml, application/xml;q=0.9",
         },
-        signal: AbortSignal.timeout(15000),
       });
-      if (!res.ok) {
+      if (res.status >= 400) {
         return [
           {
             url: feedUrl,
@@ -30,7 +31,7 @@ export class RssSourceAdapter {
           },
         ];
       }
-      const text = await res.text();
+      const text = res.body;
       const items: RssDiscoveryResult[] = this.parseFeed(text);
       results.push(...items);
     } catch (err) {

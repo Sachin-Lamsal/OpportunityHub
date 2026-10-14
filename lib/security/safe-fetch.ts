@@ -145,7 +145,10 @@ export interface SafeFetchResult {
   url: string;
   status: number;
   headers: Record<string, string>;
+  /** UTF-8 decoded body. Use bodyBuffer for binary payloads (images, files). */
   body: string;
+  /** Raw bytes, never re-encoded. */
+  bodyBuffer: Buffer;
   /** Number of redirects followed. */
   redirects: number;
 }
@@ -218,7 +221,14 @@ export async function requestOnceUnvalidated(
         if (isRedirect || status >= 400) {
           // Drain and discard; no need to buffer error/redirect bodies.
           response.resume();
-          settle.ok({ url: url.href, status, headers: responseHeaders, body: "", redirects: 0 });
+          settle.ok({
+            url: url.href,
+            status,
+            headers: responseHeaders,
+            body: "",
+            bodyBuffer: Buffer.alloc(0),
+            redirects: 0,
+          });
           return;
         }
 
@@ -236,11 +246,13 @@ export async function requestOnceUnvalidated(
         });
 
         response.on("end", () => {
+          const buffer = Buffer.concat(chunks);
           settle.ok({
             url: url.href,
             status,
             headers: responseHeaders,
-            body: Buffer.concat(chunks).toString("utf8"),
+            body: buffer.toString("utf8"),
+            bodyBuffer: buffer,
             redirects: 0,
           });
         });

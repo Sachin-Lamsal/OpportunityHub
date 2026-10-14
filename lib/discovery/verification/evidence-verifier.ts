@@ -1,3 +1,4 @@
+import { safeFetch } from "@/lib/security/safe-fetch";
 /**
  * Evidence-based verification using authoritative sources.
  * Every verification decision retains evidence and explains uncertainty.
@@ -26,18 +27,15 @@ export async function verifyEvidence(
   // If an evidence URL is provided, attempt to fetch and verify claim presence
   if (evidenceUrl) {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-      const res = await fetch(evidenceUrl, {
+      const res = await safeFetch(evidenceUrl, {
+        timeoutMs: 15000,
         headers: {
           "User-Agent": "OpportunityHub-Verification/1.0",
           Accept: "text/html",
         },
-        signal: controller.signal,
       });
-      clearTimeout(timeoutId);
-      if (res.ok) {
-        const html = await res.text();
+      if (res.status < 400) {
+        const html = res.body;
         const excerpt = html.slice(0, 3000);
         const claimLower = claim.toLowerCase();
         const excerptLower = excerpt.toLowerCase();

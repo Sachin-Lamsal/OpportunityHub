@@ -152,19 +152,11 @@ export async function signup(
     }
   }
 
-  // Check if an account with this email already exists
-  try {
-    const { data: emailTaken } = await supabase.rpc("check_email_exists", {
-      lookup_email: email,
-    });
-    if (emailTaken === true) {
-      return {
-        error: "An account with this email already exists. Please log in instead.",
-      };
-    }
-  } catch {
-    // If RPC is not created yet, fall through to Supabase auth check
-  }
+  // NOTE: We deliberately do NOT pre-check whether the email is already
+  // registered. The previous `check_email_exists` RPC is SECURITY DEFINER and
+  // was granted to `anon`, which let an unauthenticated caller enumerate every
+  // registered address ("An account with this email already exists"). The
+  // generic message below keeps signup from confirming or denying an address.
 
   let data;
   let error;
@@ -194,12 +186,15 @@ export async function signup(
 
   if (error) {
     const rawMsg = (error.message || "").trim();
+    // Do not confirm or deny that an address is registered: distinguishing
+    // this error from any other would reintroduce account enumeration.
     if (
       rawMsg.toLowerCase().includes("already registered") ||
       rawMsg.toLowerCase().includes("user already exists")
     ) {
       return {
-        error: "An account with this email already exists. Please log in instead.",
+        error:
+          "If that address can be registered, a confirmation link is on its way. If you already have an account, try logging in instead.",
       };
     }
 
@@ -223,10 +218,13 @@ export async function signup(
   }
 
   // Supabase returns an empty identities array when user enumeration protection is on
-  // and the email is already registered.
+  // and the email is already registered. We must NOT surface this as a distinct
+  // outcome, otherwise the signup form becomes an account-enumeration oracle.
+  // Returning the same neutral message as a successful send keeps it private.
   if (Array.isArray(data.user.identities) && data.user.identities.length === 0) {
     return {
-      error: "An account with this email already exists. Please log in instead.",
+      success:
+        "If that address can be registered, a confirmation link is on its way. Check your inbox, or try logging in if you already have an account.",
     };
   }
 

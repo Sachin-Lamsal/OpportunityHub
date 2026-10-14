@@ -1,3 +1,4 @@
+import { safeFetch } from "@/lib/security/safe-fetch";
 /**
  * Facebook Discovery - Permitted Access Boundary
  *
@@ -35,17 +36,14 @@ export class FacebookBoundaryAdapter {
     ];
     try {
       // Only attempt a basic public fetch with permitted headers; never impersonate
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
-      const res = await fetch(publicPageUrl, {
+      const res = await safeFetch(publicPageUrl, {
+        timeoutMs: 15000,
         headers: {
           "User-Agent": "OpportunityHub-Discovery/1.0 (academic; permitted public access only)",
           Accept: "text/html",
         },
-        signal: controller.signal,
       });
-      clearTimeout(timeout);
-      if (!res.ok) {
+      if (res.status >= 400) {
         return [
           {
             url: publicPageUrl,
@@ -55,7 +53,7 @@ export class FacebookBoundaryAdapter {
           },
         ];
       }
-      const text = await res.text();
+      const text = res.body;
       // Minimal safe extraction: no embedded instructions executed
       const pageNameMatch = text.match(/<meta[^>]+property="og:site_name"[^>]*content="([^"]+)"/i);
       return [

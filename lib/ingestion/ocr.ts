@@ -1,5 +1,6 @@
 import { getGeminiApiKey } from "@/lib/ai/gemini";
 import { GEMINI_TIMEOUT_MS, runMeteredAi } from "@/lib/ai/metered-call";
+import { safeFetch } from "@/lib/security/safe-fetch";
 
 export interface OcrResult {
   text: string;
@@ -42,27 +43,27 @@ export async function extractTextFromImage({
   // If image URL is provided, download image and convert to Base64
   if (!finalBase64 && imageUrl) {
     try {
-      const res = await fetch(imageUrl, {
+      const res = await safeFetch(imageUrl, {
+        timeoutMs: GEMINI_TIMEOUT_MS,
+        maxBytes: 8 * 1024 * 1024,
         headers: {
           "User-Agent": "OpportunityHub-OCR/1.0",
         },
-        signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
       });
 
-      if (!res.ok) {
+      if (res.status >= 400) {
         return {
           text: "",
-          error: `Failed to download image from URL (${res.status} ${res.statusText})`,
+          error: `Failed to download image from URL (HTTP ${res.status})`,
         };
       }
 
-      const contentType = res.headers.get("content-type");
+      const contentType = res.headers["content-type"];
       if (contentType && contentType.startsWith("image/")) {
         finalMimeType = contentType.split(";")[0].trim();
       }
 
-      const arrayBuffer = await res.arrayBuffer();
-      finalBase64 = Buffer.from(arrayBuffer).toString("base64");
+      finalBase64 = res.bodyBuffer.toString("base64");
     } catch (err) {
       return {
         text: "",
@@ -148,7 +149,7 @@ Output the extracted text clearly and completely with preserved section headings
         });
 
         if (!res.ok) {
-          const errText = await res.text();
+          const errText = res.body;
           console.warn(`[OCR ${model} error]`, res.status, errText);
           continue; // Try next model
         }
