@@ -150,3 +150,21 @@ test("public IP literals pass validation", async () => {
   const url = await assertSafeOutboundUrl("https://8.8.8.8/robots.txt");
   assert.equal(url.hostname, "8.8.8.8");
 });
+test("IPv4-compatible IPv6 (::a.b.c.d) is decoded and blocked (Cycle 3 regression)", () => {
+  // ::7f00:1 is the hex form of ::127.0.0.1. The original implementation
+  // required groups[6] === 0, which missed the general case and let
+  // ::127.0.0.1 through.
+  assert.equal(isPrivateAddress("::7f00:1"), true, "::127.0.0.1 must be blocked");
+  assert.equal(isPrivateAddress("::127.0.0.1"), true);
+  // ::a00:1 == 10.0.0.1
+  assert.equal(isPrivateAddress("::a00:1"), true, "::10.0.0.1 must be blocked");
+  // ::a9fe:a9fe == 169.254.169.254 (metadata)
+  assert.equal(isPrivateAddress("::a9fe:a9fe"), true, "::metadata must be blocked");
+  // ::1 and :: are loopback/unspecified
+  assert.equal(isPrivateAddress("::1"), true);
+  assert.equal(isPrivateAddress("::"), true);
+  // ::2 encodes 0.0.0.2, which is in the 0.0.0.0/8 reserved range
+  assert.equal(isPrivateAddress("::2"), true);
+  // A public IPv4-compatible address must still be allowed
+  assert.equal(isPrivateAddress("::808:808"), false, "::8.8.8.8 is public");
+});

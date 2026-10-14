@@ -101,15 +101,11 @@ function isPrivateIpv6(ip: string): boolean {
     return isPrivateIpv4(embeddedIpv4(groups));
   }
 
-  if (zeroPrefix && groups[5] === 0 && groups[6] === 0) {
-    // IPv4-compatible ::a.b.c.d (deprecated, still routable in some stacks)
-    const embedded = embeddedIpv4(groups);
-    if (embedded === "0.0.0.1") return true; // ::1
-    return isPrivateIpv4(embedded);
-  }
-
-  if (zeroPrefix && groups[5] === 0 && groups[6] === 0 && groups[7] === 1) {
-    return true; // ::1 loopback
+  if (zeroPrefix && groups[5] === 0) {
+    // IPv4-compatible ::a.b.c.d (RFC 4291 deprecated, but still routable on
+    // some stacks). groups[6..7] hold the embedded IPv4 address. This covers
+    // ::1, ::7f00:1 (== 127.0.0.1), ::a00:1 (== 10.0.0.1) and so on.
+    return isPrivateIpv4(embeddedIpv4(groups));
   }
 
   return false;
