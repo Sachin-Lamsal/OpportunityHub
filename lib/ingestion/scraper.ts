@@ -4,10 +4,10 @@
  * to be plugged in seamlessly.
  */
 
-import { assertSafeOutboundUrl } from "@/lib/security/url-guard";
+import { safeFetch } from "@/lib/security/safe-fetch";
+import type { ResolveHostname } from "@/lib/security/safe-fetch";
 
-const MAX_REDIRECTS = 5;
-const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+const DEFAULT_MAX_BYTES = 5 * 1024 * 1024;
 
 export interface ScrapedResult {
   url: string;
@@ -23,6 +23,11 @@ export interface ScraperAdapter {
   scrape(url: string, signal?: AbortSignal): Promise<ScrapedResult>;
 }
 
+export interface ScrapeOptions {
+  /** Test seam: supply a resolver that simulates DNS rebinding. */
+  resolveHostname?: ResolveHostname;
+}
+
 /**
  * Built-in default fetch-based scraper.
  * Lightweight, fast, zero heavy dependencies.
@@ -31,57 +36,30 @@ export interface ScraperAdapter {
 export class DefaultFetchScraper implements ScraperAdapter {
   name = "default-fetch";
 
-  async scrape(url: string, signal?: AbortSignal): Promise<ScrapedResult> {
-    const startUrl = await assertSafeOutboundUrl(url);
-    const { html, finalUrl } = await this.fetchWithSafeRedirects(startUrl, signal);
-    return this.parseHtml(finalUrl, html);
-  }
-
-  /**
-   * Fetches a URL while re-validating every redirect hop. Prevents SSRF via
-   * open redirects to internal addresses and bounds the redirect chain.
-   */
-  private async fetchWithSafeRedirects(
-    startUrl: URL,
+  async scrape(
+    url: string,
     signal?: AbortSignal,
-  ): Promise<{ html: string; finalUrl: string }> {
-    let currentUrl = startUrl;
+    options: ScrapeOptions = {},
+  ): Promise<ScrapedResult> {
+    const response = await safeFetch(url, {
+      signal,
+      timeoutMs: 15_000,
+      maxBytes: DEFAULT_MAX_BYTES,
+      resolveHostname: options.resolveHostname,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 OpportunityHub/1.0",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+    });
 
-    for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-      const response = await fetch(currentUrl.href, {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 OpportunityHub/1.0",
-          Accept:
-            "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-          "Accept-Language": "en-US,en;q=0.9",
-        },
-        redirect: "manual",
-        signal,
-        next: { revalidate: 0 },
-      });
-
-      if (REDIRECT_STATUSES.has(response.status)) {
-        const location = response.headers.get("location");
-        if (!location) {
-          throw new Error("Redirect response missing Location header.");
-        }
-        if (hop === MAX_REDIRECTS) {
-          throw new Error("Too many redirects.");
-        }
-        currentUrl = await assertSafeOutboundUrl(new URL(location, currentUrl).href);
-        continue;
-      }
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch URL (HTTP ${response.status}: ${response.statusText})`);
-      }
-
-      const html = await response.text();
-      return { html, finalUrl: currentUrl.href };
+    if (response.status >= 400) {
+      throw new Error(
+        `Failed to fetch URL (HTTP ${response.status}: ${response.headers["content-type"] ?? "error"})`,
+      );
     }
 
-    throw new Error("Too many redirects.");
+    return this.parseHtml(response.url, response.body);
   }
 
   private parseHtml(url: string, html: string): ScrapedResult {

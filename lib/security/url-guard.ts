@@ -129,12 +129,33 @@ export function isPrivateAddress(ip: string): boolean {
   return true;
 }
 
+export type HostnameResolver = (
+  hostname: string,
+  callback: (err: Error | null, addresses: { address: string }[]) => void,
+) => void;
+
+const defaultResolver: HostnameResolver = (hostname, callback) => {
+  lookup(hostname, { all: true, verbatim: true })
+    .then((addresses) =>
+      callback(null, (addresses ?? []) as { address: string }[]),
+    )
+    .catch((err: Error) => callback(err, []));
+};
+
 /**
  * Validates that an outbound URL is safe to fetch server-side.
  * Blocks non-HTTP(S) protocols, internal hostnames, literal private IPs,
  * and hostnames that resolve to private addresses (basic SSRF protection).
+ *
+ * NOTE: This DNS check is a fast pre-filter only. It is NOT the security
+ * boundary — the authoritative check happens at socket-connection time via
+ * `safeFetch`'s validating `lookup`, which is immune to DNS rebinding. See
+ * `lib/security/safe-fetch.ts`.
  */
-export async function assertSafeOutboundUrl(input: unknown): Promise<URL> {
+export async function assertSafeOutboundUrl(
+  input: unknown,
+  resolveHostname: HostnameResolver = defaultResolver,
+): Promise<URL> {
   if (typeof input !== "string" || input.trim().length === 0) {
     throw new UnsafeUrlError("A non-empty URL string is required.");
   }
@@ -171,14 +192,22 @@ export async function assertSafeOutboundUrl(input: unknown): Promise<URL> {
     return url;
   }
 
-  let addresses: { address: string }[];
+  let addresses: { address: string }[] = [];
   try {
-    addresses = await lookup(hostname, { all: true });
+    addresses = await new Promise<{ address: string }[]>((resolve, reject) => {
+      resolveHostname(hostname, (err, resolved) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve(resolved ?? []);
+      });
+    });
   } catch {
     throw new UnsafeUrlError("Unable to resolve hostname.");
   }
 
-  if (addresses.length === 0) {
+  if (!addresses || addresses.length === 0) {
     throw new UnsafeUrlError("Unable to resolve hostname.");
   }
 

@@ -89,7 +89,7 @@ export async function ingestFromUrl(url: string): Promise<IngestResponse> {
     let combinedText = scraped.content;
     const candidateImage = scraped.images[0];
     if (scraped.content.length < 300 && candidateImage) {
-      const ocr = await extractTextFromImage({ imageUrl: candidateImage });
+      const ocr = await extractTextFromImage({ imageUrl: candidateImage, userId: publisher.userId });
       if (ocr.text) {
         combinedText += `\n\n[OCR from Poster Image]:\n${ocr.text}`;
       }
@@ -100,6 +100,7 @@ export async function ingestFromUrl(url: string): Promise<IngestResponse> {
       sourceUrl: trimmedUrl,
       sourceType: "scraped",
       pageTitle: scraped.title,
+      userId: publisher.userId,
     });
 
     return {
@@ -171,6 +172,7 @@ export async function ingestFromImage(formData: FormData): Promise<IngestRespons
         imageUrl,
         imageBase64,
         mimeType,
+        userId: publisher.userId,
       });
 
       if (ocrResult.error || !ocrResult.text) {
@@ -184,6 +186,7 @@ export async function ingestFromImage(formData: FormData): Promise<IngestRespons
         rawText: ocrResult.text,
         sourceUrl: imageUrl || "",
         sourceType: "ocr",
+        userId: publisher.userId,
         pageTitle: "Extracted Notice Poster",
       });
 
@@ -210,6 +213,7 @@ export async function ingestFromImage(formData: FormData): Promise<IngestRespons
   try {
     const ocrResult = await extractTextFromImage({
       imageUrl,
+      userId: publisher.userId,
     });
 
     if (ocrResult.error || !ocrResult.text) {
@@ -223,6 +227,7 @@ export async function ingestFromImage(formData: FormData): Promise<IngestRespons
       rawText: ocrResult.text,
       sourceUrl: imageUrl,
       sourceType: "ocr",
+      userId: publisher.userId,
       pageTitle: "Extracted Notice Poster",
     });
 

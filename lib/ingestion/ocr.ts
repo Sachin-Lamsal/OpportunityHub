@@ -1,4 +1,5 @@
 import { getGeminiApiKey } from "@/lib/ai/gemini";
+import { GEMINI_TIMEOUT_MS, runMeteredAi } from "@/lib/ai/metered-call";
 
 export interface OcrResult {
   text: string;
@@ -17,10 +18,13 @@ export async function extractTextFromImage({
   imageUrl,
   imageBase64,
   mimeType = "image/jpeg",
+  userId,
 }: {
   imageUrl?: string;
   imageBase64?: string;
   mimeType?: string;
+  /** Authenticated caller. Required: unmetered AI calls are not permitted. */
+  userId: string;
 }): Promise<OcrResult> {
   const apiKey = getGeminiApiKey();
 
@@ -42,6 +46,7 @@ export async function extractTextFromImage({
         headers: {
           "User-Agent": "OpportunityHub-OCR/1.0",
         },
+        signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
       });
 
       if (!res.ok) {
@@ -108,57 +113,74 @@ Output the extracted text clearly and completely with preserved section headings
     "gemini-3.5-flash-lite",
   ];
 
-  for (const model of models) {
-    try {
-      const url = `${GEMINI_API_BASE}/models/${model}:generateContent?key=${apiKey}`;
-      const payload = {
-        contents: [
-          {
-            parts: [
-              {
-                inlineData: {
-                  mimeType: finalMimeType,
-                  data: finalBase64,
+  // Metered: reserve a credit before calling Gemini, refund on failure.
+  const metered = await runMeteredAi(userId, async (): Promise<OcrResult | null> => {
+    for (const model of models) {
+      try {
+        const url = `${GEMINI_API_BASE}/models/${model}:generateContent?key=${apiKey}`;
+        const payload = {
+          contents: [
+            {
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: finalMimeType,
+                    data: finalBase64,
+                  },
                 },
-              },
-              {
-                text: prompt,
-              },
-            ],
+                {
+                  text: prompt,
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.1,
+            maxOutputTokens: 2048,
           },
-        ],
-        generationConfig: {
-          temperature: 0.1,
-          maxOutputTokens: 2048,
-        },
-      };
-
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const errText = await res.text();
-        console.warn(`[OCR ${model} error]`, res.status, errText);
-        continue; // Try next model
-      }
-
-      const json = await res.json();
-      const extractedText =
-        json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
-
-      if (extractedText) {
-        return {
-          text: extractedText,
-          sourceImageUrl: imageUrl,
-          confidence: "high",
         };
+
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
+        });
+
+        if (!res.ok) {
+          const errText = await res.text();
+          console.warn(`[OCR ${model} error]`, res.status, errText);
+          continue; // Try next model
+        }
+
+        const json = await res.json();
+        const extractedText =
+          json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+
+        if (extractedText) {
+          return {
+            text: extractedText,
+            sourceImageUrl: imageUrl,
+            confidence: "high",
+          };
+        }
+      } catch (err) {
+        console.warn(`[OCR ${model} fetch exception]`, err);
       }
-    } catch (err) {
-      console.warn(`[OCR ${model} fetch exception]`, err);
+
     }
+    return null;
+  });
+
+  if (!metered.ok) {
+    console.warn(`[OCR] request refused: ${metered.reason}`);
+    return { text: "", error: metered.reason === "quota"
+      ? metered.message
+      : `OCR failed: ${metered.message}` };
+  }
+
+  if (metered.value) {
+    return metered.value;
   }
 
   return {

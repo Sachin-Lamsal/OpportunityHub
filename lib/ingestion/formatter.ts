@@ -1,4 +1,5 @@
 import { getGeminiApiKey } from "@/lib/ai/gemini";
+import { GEMINI_TIMEOUT_MS, runMeteredAi } from "@/lib/ai/metered-call";
 import { OPPORTUNITY_TYPES, SUBJECT_AREAS } from "@/lib/constants";
 import type { SourceType, VerificationStatus } from "@/lib/types";
 
@@ -41,11 +42,14 @@ export async function formatRawTextToOpportunity({
   sourceUrl,
   sourceType = "scraped",
   pageTitle,
+  userId,
 }: {
   rawText: string;
   sourceUrl?: string;
   sourceType?: SourceType;
   pageTitle?: string;
+  /** Authenticated caller. Required: unmetered AI calls are not permitted. */
+  userId: string;
 }): Promise<OpportunityDraft> {
   const apiKey = getGeminiApiKey();
 
@@ -91,71 +95,82 @@ Return ONLY a valid JSON object matching the fields above with no markdown code 
 
   const models = ["gemini-flash-latest", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-flash-lite-latest"];
 
-  for (const model of models) {
-    try {
-      const url = `${GEMINI_API_BASE}/models/${model}:generateContent?key=${apiKey}`;
-      const payload = {
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          temperature: 0.1,
-          maxOutputTokens: 2048,
-        },
-      };
+  // Metered: reserve a credit before calling Gemini, refund on failure.
+  const metered = await runMeteredAi(userId, async (): Promise<OpportunityDraft | null> => {
+    for (const model of models) {
+      try {
+        const url = `${GEMINI_API_BASE}/models/${model}:generateContent?key=${apiKey}`;
+        const payload = {
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            temperature: 0.1,
+            maxOutputTokens: 2048,
+          },
+        };
 
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
+        });
 
-      if (!res.ok) {
-        continue;
+        if (!res.ok) {
+          continue;
+        }
+
+        const json = await res.json();
+        const rawResponse = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+
+        if (!rawResponse) continue;
+
+        const parsed = JSON.parse(rawResponse) as Partial<OpportunityDraft>;
+
+        return {
+          title: (parsed.title || pageTitle || "Untitled Scraped Opportunity").trim(),
+          type: OPPORTUNITY_TYPES.includes(parsed.type as (typeof OPPORTUNITY_TYPES)[number])
+            ? parsed.type!
+            : "Other",
+          description: (parsed.description || rawText.slice(0, 200)).trim(),
+          organizer: (parsed.organizer || "Unknown Organizer").trim(),
+          registration_link: parsed.registration_link || sourceUrl || "",
+          deadline: parseDateOrNull(parsed.deadline),
+          start_date: parseDateOrNull(parsed.start_date),
+          end_date: parseDateOrNull(parsed.end_date),
+          location: parsed.location || (parsed.is_online ? "Online" : "Nepal / Global"),
+          is_online: Boolean(parsed.is_online),
+          subject_area: SUBJECT_AREAS.includes(
+            parsed.subject_area as (typeof SUBJECT_AREAS)[number],
+          )
+            ? parsed.subject_area!
+            : "Technology",
+          grade_requirements: parsed.grade_requirements || "High school and secondary students",
+          cost: parsed.cost || "Check organizer website",
+          time_commitment: parsed.time_commitment || "",
+          skills_gained: parsed.skills_gained || "",
+          difficulty_level: parsed.difficulty_level || "Intermediate",
+          tags: Array.isArray(parsed.tags) ? parsed.tags : ["scraped", "internet-source"],
+          application_steps: parsed.application_steps || "",
+          eligibility_details: parsed.eligibility_details || "",
+          contact_info: parsed.contact_info || "",
+          source_url: sourceUrl || "",
+          is_verified: false,
+          verification_status: "unverified",
+          source_type: sourceType,
+          raw_source_text: rawText,
+        };
+      } catch (err) {
+        console.warn(`[AI Opportunity Formatter] ${model} failed`, err);
       }
-
-      const json = await res.json();
-      const rawResponse = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-
-      if (!rawResponse) continue;
-
-      const parsed = JSON.parse(rawResponse) as Partial<OpportunityDraft>;
-
-      return {
-        title: (parsed.title || pageTitle || "Untitled Scraped Opportunity").trim(),
-        type: OPPORTUNITY_TYPES.includes(parsed.type as (typeof OPPORTUNITY_TYPES)[number])
-          ? parsed.type!
-          : "Other",
-        description: (parsed.description || rawText.slice(0, 200)).trim(),
-        organizer: (parsed.organizer || "Unknown Organizer").trim(),
-        registration_link: parsed.registration_link || sourceUrl || "",
-        deadline: parseDateOrNull(parsed.deadline),
-        start_date: parseDateOrNull(parsed.start_date),
-        end_date: parseDateOrNull(parsed.end_date),
-        location: parsed.location || (parsed.is_online ? "Online" : "Nepal / Global"),
-        is_online: Boolean(parsed.is_online),
-        subject_area: SUBJECT_AREAS.includes(
-          parsed.subject_area as (typeof SUBJECT_AREAS)[number],
-        )
-          ? parsed.subject_area!
-          : "Technology",
-        grade_requirements: parsed.grade_requirements || "High school and secondary students",
-        cost: parsed.cost || "Check organizer website",
-        time_commitment: parsed.time_commitment || "",
-        skills_gained: parsed.skills_gained || "",
-        difficulty_level: parsed.difficulty_level || "Intermediate",
-        tags: Array.isArray(parsed.tags) ? parsed.tags : ["scraped", "internet-source"],
-        application_steps: parsed.application_steps || "",
-        eligibility_details: parsed.eligibility_details || "",
-        contact_info: parsed.contact_info || "",
-        source_url: sourceUrl || "",
-        is_verified: false,
-        verification_status: "unverified",
-        source_type: sourceType,
-        raw_source_text: rawText,
-      };
-    } catch (err) {
-      console.warn(`[AI Opportunity Formatter] ${model} failed`, err);
     }
+    return null;
+  });
+
+  if (!metered.ok) {
+    console.warn(`[AI Opportunity Formatter] request refused: ${metered.reason}`);
+  } else if (metered.value) {
+    return metered.value;
   }
 
   return fallbackRuleBasedFormat(rawText, sourceUrl, sourceType, pageTitle);
