@@ -368,3 +368,115 @@ delete are scoped by `.eq("created_by", user.id)`), `onboarding.ts`,
 - **RR-6 — Over-fetching.** `getOpportunities()` and several admin queries still
   use `.select("*")`, pulling `raw_source_text` and other wide columns. Safe but
   wasteful; left unchanged to avoid breaking response shapes used by the UI.
+---
+
+# PHASE 2 LEDGER (2026-10-14)
+
+## Cycle 1 — Repair
+
+### P2-001  DNS-rebinding SSRF (was RR-1, high)
+- **Status:** FIXED. Closed, not merely narrowed.
+- **Location:** `lib/security/safe-fetch.ts` (new), `lib/ingestion/scraper.ts`
+- **Root cause:** `assertSafeOutboundUrl()` resolved DNS, then `fetch()`
+  resolved it AGAIN. An attacker-controlled resolver could answer public during
+  validation and private at connect time.
+- **Fix:** Replaced `fetch` with `node:http`/`node:https` and a custom `lookup`
+  passed through to `net.connect`/`tls.connect`. Node calls `lookup` at the
+  exact moment the connection address is chosen, so the validated address IS the
+  connected address — no second resolution step exists to rebind. The URL keeps
+  the real hostname, so TLS SNI and the Host header remain correct (no
+  IP-literal rewriting). Fails closed if ANY resolved address is private.
+- **Tests:** `tests/security/dns-rebinding.test.ts` (15). Includes a resolver
+  that returns a public IP on call 1 and a private IP on call 2, asserting the
+  real connection is blocked and the resolver was consulted again at connect time.
+
+### P2-002  Unguarded SSRF in fetchPageText (NEW finding)
+- **Status:** FIXED. Severity high.
+- **Location:** `lib/ai/fetch-page-text.ts`
+- **Detail:** Only checked the URL protocol. Reached with
+  `opportunity.registration_link`, which any school/org account controls, via
+  `enrichOpportunityWithAI` (available to ANY signed-in user). A publisher could
+  store `registration_link = http://169.254.169.254/...` and have the server
+  fetch the cloud metadata service.
+
+### P2-003  AI quota race + two unmetered Gemini callers
+- **Status:** FIXED.
+- **Location:** `lib/ai/usage.ts`, `lib/ai/metered-call.ts` (new),
+  `lib/ingestion/formatter.ts`, `lib/ingestion/ocr.ts`, `lib/actions/ingestion.ts`
+- **Detail:** `consumeTierCredit` did read-then-write, so concurrent requests
+  could collectively exceed the limit. `formatter.ts`/`ocr.ts` bypassed quota
+  entirely with raw `fetch` and no timeout.
+- **Fix:** Compare-and-swap increment (`UPDATE ... WHERE col = <observed>`),
+  which is atomic in Postgres and needs NO migration. Credit is reserved BEFORE
+  the provider call and refunded on failure. Both files now require an
+  authenticated `userId` and route through `runMeteredAi`. All Gemini calls have
+  request timeouts.
+- **Tests:** `tests/ai/quota-concurrency.test.ts` (8). 25 concurrent
+  reservations against a limit of 10 grant exactly 10.
+
+### P2-004  No function REVOKE anywhere (RR-4)
+- **Status:** MIGRATION PREPARED, NOT APPLIED.
+- **Location:** `supabase/migration-security-hardening.sql` (new)
+- **Detail:** PostgreSQL grants EXECUTE to PUBLIC by default; no migration ever
+  revoked it. `get_student_school_id()` and `is_school_of_student()` are
+  SECURITY DEFINER and were granted to `anon` — an unauthenticated caller could
+  query which school any student attends.
+- **Action required:** apply in the Supabase SQL editor.
+
+### P2-005  Account enumeration at signup
+- **Status:** FIXED.
+- **Location:** `lib/actions/auth.ts`
+- **Detail:** `check_email_exists(text)` is SECURITY DEFINER, granted to `anon`,
+  and the signup form said "An account with this email already exists" — a
+  reliable enumeration oracle. Removed the pre-check and made the
+  already-registered path return a neutral message.
+
+## Cycle 2 — Independent review
+
+### P2-006  Four more unguarded fetch() sinks (NEW findings)
+- **Status:** FIXED. Severity high (OCR), medium (discovery).
+- **Location:** `lib/discovery/sources/rss-adapter.ts`,
+  `lib/discovery/sources/facebook-boundary.ts`,
+  `lib/discovery/verification/evidence-verifier.ts`,
+  `lib/ingestion/ocr.ts` (fetches a user-supplied image URL)
+- **Detail:** Found by grepping for raw `fetch(` rather than assuming the first
+  fix had been comprehensive. All now route through `safeFetch`.
+- Added `bodyBuffer` to `SafeFetchResult` because OCR needs raw bytes; a utf8
+  string would have silently corrupted downloaded images.
+- **Tests:** `tests/security/ssrf-sinks.test.ts` — a structural test that walks
+  `lib/` and fails if any module reintroduces a raw `fetch()` on a
+  user-controllable URL.
+
+## Cycle 3 — Adversarial verification
+
+### P2-007  IPv4-compatible IPv6 bypass (found in my own new code)
+- **Status:** FIXED. Severity high.
+- **Location:** `lib/security/url-guard.ts`
+- **Detail:** The IPv4-compatible test required `groups[6] === 0`, which only
+  matched `::1` and `::0.0.0.x`. The general form `::a.b.c.d` puts the embedded
+  IPv4 in groups[6..7], so `::7f00:1` (== 127.0.0.1) and `::a00:1` (== 10.0.0.1)
+  were classified PUBLIC and allowed. My own Phase 2 code shipped this bug.
+- **Fix:** Condition is now `groups[5] === 0` (the whole `::/96` prefix).
+- **Tests:** 8 assertions in `tests/security/url-guard.test.ts`. Public forms
+  such as `::8.8.8.8` still pass.
+
+## Credential scope (verified, not rotated)
+
+- No secret values in any tracked file.
+- No secret values in ANY git object across ALL refs (the backup ref was also
+  rewritten by filter-repo, so it does not retain them either).
+- `.env.local` holds live values and is correctly gitignored.
+- **Rotation NOT performed and NOT verifiable from here.** Manual steps required.
+
+## NOT COMPLETED IN PHASE 2 (disclosed)
+
+- **P3 password recovery end-to-end**: pages/actions exist and render (verified
+  by curl); real email delivery and Supabase redirect allowlist NOT verified.
+- **P4 performance**: investigation only. 20 `select("*")` queries remain and
+  the proxy still does `getUser()` + a profiles query per request. No changes
+  were made because there is no live database to MEASURE against, and the
+  instructions forbid inventing numbers. Left as-is deliberately.
+- **P5 feature verification**: partially covered — real defects were found and
+  fixed (4 SSRF sinks, enumeration). No live Brevo/Gemini/Supabase verification.
+- **RLS policy execution**: reviewed statically (all 17 tables have RLS
+  enabled); NOT executed against a live database.
