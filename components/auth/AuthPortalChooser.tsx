@@ -4,6 +4,7 @@ import { LOGIN_PORTAL_CARDS } from "@/lib/constants";
 
 interface AuthPortalChooserProps {
   mode: "login" | "signup";
+  error?: string;
 }
 
 const accentClasses = {
@@ -12,8 +13,18 @@ const accentClasses = {
   violet: "border-violet-200 bg-violet-50/50 hover:border-violet-300",
 } as const;
 
-export default function AuthPortalChooser({ mode }: AuthPortalChooserProps) {
+const ERROR_MESSAGES: Record<string, string> = {
+  auth_callback_failed:
+    "We couldn't complete your sign-in. Please try again, or make sure Google sign-in is configured.",
+  oauth_failed:
+    "Google sign-in failed. Please try again.",
+};
+
+export default function AuthPortalChooser({ mode, error }: AuthPortalChooserProps) {
   const isLogin = mode === "login";
+  const errorMessage = error
+    ? ERROR_MESSAGES[error] ?? "Something went wrong. Please try again."
+    : null;
 
   return (
     <div className="space-y-6">
@@ -27,6 +38,15 @@ export default function AuthPortalChooser({ mode }: AuthPortalChooserProps) {
             : "Students, schools, and organizations each have their own signup flow."}
         </p>
       </div>
+
+      {errorMessage && (
+        <div
+          role="alert"
+          className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          {errorMessage}
+        </div>
+      )}
 
       <div className="grid gap-4">
         {LOGIN_PORTAL_CARDS.map((portal) => (

@@ -4,6 +4,11 @@ export const metadata = {
   title: "Log in",
 };
 
-export default function LoginPage() {
-  return <AuthPortalChooser mode="login" />;
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
+  return <AuthPortalChooser mode="login" error={error} />;
 }
