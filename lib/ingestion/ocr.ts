@@ -100,7 +100,13 @@ Extract and transcribe all text and key details verbatim:
 
 Output the extracted text clearly and completely with preserved section headings.`;
 
-  const models = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.0-flash-lite"];
+  const models = [
+    "gemini-flash-latest",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
+    "gemini-flash-lite-latest",
+    "gemini-3.5-flash-lite",
+  ];
 
   for (const model of models) {
     try {

@@ -82,6 +82,12 @@ export default async function CandidatePage({ params }: PageProps) {
       </div>
 
       <div className="flex gap-4">
+        <form action={async () => { await approveCandidate(id); }}>
+          <Button type="submit" variant="outline">Approve</Button>
+        </form>
+        <form action={async () => { await rejectCandidate(id); }}>
+          <Button type="submit" variant="outline">Reject</Button>
+        </form>
         <Button href="/admin/queue" variant="outline">Back to Queue</Button>
       </div>
     </div>

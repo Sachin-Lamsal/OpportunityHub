@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { DiscoveryCandidate, VerificationEvidence, RiskFlag, AuditEvent } from "@/lib/types/discovery";
+
 
 /**
  * Create a discovery candidate from a URL or manual submission
@@ -25,12 +25,12 @@ export async function createDiscoveryCandidate(data: {
   raw_content?: string;
 }): Promise<{ success: boolean; candidateId?: string; error?: string }> {
   try {
-    const admin = createAdminClient();
-    if (!admin) {
-      return { success: false, error: "Admin client not configured" };
-    }
+    // Prefer the service-role client (bypasses RLS for system/pipeline writes).
+    // Fall back to the caller's authenticated session client so the action still
+    // works when SUPABASE_SERVICE_ROLE_KEY is not configured; RLS then applies.
+    const client = createAdminClient() ?? (await createClient());
 
-    const { data: candidate, error } = await admin
+    const { data: candidate, error } = await client
       .from("discovery_candidates")
       .insert({
         original_url: data.original_url,
@@ -407,15 +407,14 @@ export async function logAuditEvent(data: {
   actor_type?: string;
   target_type?: string;
   target_id?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   success: boolean;
   error_message?: string;
 }): Promise<void> {
   try {
-    const admin = createAdminClient();
-    if (!admin) return;
+    const client = createAdminClient() ?? (await createClient());
 
-    await admin.from("audit_events").insert({
+    await client.from("audit_events").insert({
       action: data.action,
       actor_id: data.actor_id || null,
       actor_type: data.actor_type || null,

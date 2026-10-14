@@ -10,7 +10,7 @@ export async function getPublishedOpportunitiesForRecommendations(
 ): Promise<Opportunity[]> {
   const supabase = await createClient();
 
-  let query = supabase
+  const query = supabase
     .from("opportunities")
     .select("*")
     .in("source_type", ["official", "manual", "scraped"])

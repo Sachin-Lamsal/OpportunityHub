@@ -31,7 +31,7 @@ export class RssSourceAdapter {
         ];
       }
       const text = await res.text();
-      const items: RssDiscoveryResult[] = this.parseFeed(text, feedUrl);
+      const items: RssDiscoveryResult[] = this.parseFeed(text);
       results.push(...items);
     } catch (err) {
       results.push({
@@ -43,7 +43,7 @@ export class RssSourceAdapter {
     return results;
   }
 
-  private parseFeed(text: string, feedUrl: string): RssDiscoveryResult[] {
+  private parseFeed(text: string): RssDiscoveryResult[] {
     // Minimal safe parser: extract item URLs and titles via regex
     const urlMatches = text.match(/<link>(https?:\/\/[^<]+)<\/link>/g) || [];
     const titleMatches = text.match(/<title>([^<]+)<\/title>/g) || [];

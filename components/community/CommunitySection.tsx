@@ -35,7 +35,7 @@ export default function CommunitySection({
   // Comment form state
   const [newComment, setNewComment] = useState("");
   const [replyingToId, setReplyingToId] = useState<string | null>(null);
-  const [commentMsg, setCommentMsg] = useState<{ error?: string; success?: string } | null>(null);
+  const [, setCommentMsg] = useState<{ error?: string; success?: string } | null>(null);
 
   function handleSubmitReview(e: FormEvent) {
     e.preventDefault();

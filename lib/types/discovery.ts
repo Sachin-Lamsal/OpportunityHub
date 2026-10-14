@@ -79,7 +79,7 @@ export interface AuditEvent {
   actor_type: 'admin' | 'system' | 'student' | 'school' | 'organization' | null;
   target_type: 'candidate' | 'opportunity' | 'flag' | 'source' | 'verification' | null;
   target_id: string | null;
-  details: Record<string, any> | null;
+  details: Record<string, unknown> | null;
   success: boolean;
   error_message: string | null;
   created_at: string;
@@ -90,7 +90,7 @@ export interface DiscoverySource {
   name: string;
   source_type: 'website' | 'rss' | 'facebook' | 'search' | 'user_submitted' | 'other';
   base_url: string | null;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   is_active: boolean;
   last_scan_at: string | null;
   last_error: string | null;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Button from "@/components/ui/Button";
 import type { AccountType } from "@/lib/types";
@@ -91,7 +91,7 @@ export default function GmailSignupButton({
       )}
 
       <p className="text-xs text-slate-500 text-center">
-        We'll use your Google account to sign you up securely.
+        We&apos;ll use your Google account to sign you up securely.
       </p>
     </div>
   );

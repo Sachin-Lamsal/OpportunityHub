@@ -480,11 +480,12 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
     return null;
   }
 
-  let { data: profile, error: profileError } = await supabase
+  const { data: profileData, error: profileError } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
     .maybeSingle();
+  let profile = profileData;
 
   if (profileError) {
     console.error("Failed to load profile:", profileError.message);

@@ -24,12 +24,6 @@ export default function SignupForm({ accountType }: SignupFormProps) {
   const [state, formAction, pending] = useActionState(signup, initialState);
   useActionRedirect(state.redirectTo);
 
-  // Log for debugging
-  console.log('SignupForm - accountType:', accountType);
-  console.log('SignupForm - formAction:', formAction);
-  console.log('SignupForm - state:', state);
-  console.log('SignupForm - pending:', pending);
-
   const label = ACCOUNT_TYPE_LABELS[accountType];
   const isStudent = accountType === "student";
 

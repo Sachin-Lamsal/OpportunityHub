@@ -89,7 +89,7 @@ ${rawText.slice(0, 10000)}
 
 Return ONLY a valid JSON object matching the fields above with no markdown code fences.`;
 
-  const models = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.0-flash-lite"];
+  const models = ["gemini-flash-latest", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-flash-lite-latest"];
 
   for (const model of models) {
     try {

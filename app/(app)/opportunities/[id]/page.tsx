@@ -12,7 +12,6 @@ import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { getProfile } from "@/lib/actions/auth";
 import { sanitizeRegistrationUrl } from "@/lib/utils/url";
-import { canManageOpportunities } from "@/lib/auth/account";
 import VerificationBadge from "@/components/opportunities/VerificationBadge";
 import VerifyOpportunityButton from "@/components/opportunities/VerifyOpportunityButton";
 import CommunitySection from "@/components/community/CommunitySection";

@@ -1,5 +1,4 @@
 import { getScraper } from "@/lib/ingestion/scraper";
-import { DefaultFetchScraper } from "@/lib/ingestion/scraper";
 
 export interface WebsiteDiscoveryResult {
   url: string;

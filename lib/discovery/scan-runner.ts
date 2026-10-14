@@ -28,7 +28,7 @@ export class ScanRunner {
     return { ...this.config };
   }
 
-  async runScan(sourceUrl: string, adapter: { discover(url: string): Promise<any> }): Promise<ScanJobRecord> {
+  async runScan(sourceUrl: string, adapter: { discover(url: string): Promise<unknown> }): Promise<ScanJobRecord> {
     const startedAt = new Date().toISOString();
     let retries = 0;
     let candidatesDiscovered = 0;
@@ -39,7 +39,7 @@ export class ScanRunner {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
         // Run adapter scan with timeout
-        const result = await adapter.discover(sourceUrl);
+        await adapter.discover(sourceUrl);
         clearTimeout(timeoutId);
         candidatesDiscovered++;
         // Rate limit between attempts

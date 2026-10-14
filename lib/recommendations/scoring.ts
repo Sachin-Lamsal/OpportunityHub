@@ -115,7 +115,7 @@ function eligibilityCheck(opportunity: Opportunity, profile: Profile): number {
   return score;
 }
 
-function fundingCheck(opportunity: Opportunity, profile: Profile): number {
+function fundingCheck(opportunity: Opportunity): number {
   const cost = opportunity.cost?.toLowerCase() || "";
   const description = opportunity.description.toLowerCase();
   const isFunded = cost.includes("free") || cost.includes("fully funded") || cost.includes("scholarship included") || description.includes("fully funded");
@@ -123,7 +123,7 @@ function fundingCheck(opportunity: Opportunity, profile: Profile): number {
   return isFunded ? 2 : cost.includes("fee") ? 0 : 1;
 }
 
-function locationCheck(opportunity: Opportunity, profile: Profile): number {
+function locationCheck(opportunity: Opportunity): number {
   const online = opportunity.is_online === true ? 1 : 0;
   return online; // Prefer online for broader accessibility; not a disqualifier
 }
@@ -153,7 +153,6 @@ export function calculateRecommendations(
     }
 
     // Eligibility hard exclusions (simplified deterministic rules)
-    const disqualified: string[] = [];
     if (!opp.is_verified && opp.verification_status !== "verified") {
       // Not a hard disqualifier for recommendation display if still published,
       // but we note it in eligibility status
@@ -163,8 +162,8 @@ export function calculateRecommendations(
     const subjectScore = subjectMatches(opp, profile) * 3;
     const categoryScore = categoryMatches(opp, profile) * 2;
     const eligibilityScore = eligibilityCheck(opp, profile) * 2;
-    const fundingScore = fundingCheck(opp, profile) * 2;
-    const locationScore = locationCheck(opp, profile) * 1;
+    const fundingScore = fundingCheck(opp) * 2;
+    const locationScore = locationCheck(opp) * 1;
     const recencyScore = recencyCheck(opp);
 
     const total =

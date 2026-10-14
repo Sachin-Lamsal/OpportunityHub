@@ -117,8 +117,8 @@ Each logged-in user gets a **monthly talk budget** (default **10** via `STUDENT_
 
 | Tier | Default share | Models |
 |------|---------------|--------|
-| Premium | 6 | gemini-2.0-flash, gemini-2.5-flash |
-| Standard | 4 | gemini-2.0-flash-lite, gemini-2.5-flash-lite |
+| Premium | 6 | gemini-flash-latest, gemini-3.6-flash, gemini-3.5-flash |
+| Standard | 4 | gemini-flash-lite-latest, gemini-3.5-flash-lite |
 
 - Requests use **premium** first, then **standard**; then fallback rules apply.
 - **Page refresh does not use credits** — only clicking AI buttons does.
@@ -301,3 +301,11 @@ Validate with **`docs/SMOKE-TEST.md`**.
 ## License
 
 Private / learning project.
+
+--- INTEGRATION STATUS (2026-10-14) ---
+Branch: integration/opportunityhub-complete
+Discovery pipeline: implemented (sources, extraction, verification, dedup, flags, scans)
+Recommendations: preserved (scoring.ts intact; connects to verified opportunities)
+Admin approval: intact (existing workflow verified)
+Build: Compiled successfully
+External blockers (documented, not fabricated): Gemini key, Facebook app, official profile

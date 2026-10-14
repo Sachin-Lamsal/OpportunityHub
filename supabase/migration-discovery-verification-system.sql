@@ -1,6 +1,8 @@
 -- =============================================================================
 -- OpportunityHub Discovery, Verification, Approval, and Audit System
 -- Run in Supabase Dashboard -> SQL Editor -> New Query -> Run
+--
+-- Re-runnable: policies are dropped before creation, tables use IF NOT EXISTS.
 -- =============================================================================
 
 -- ---------------------------------------------------------------------------
@@ -20,28 +22,76 @@ create index if not exists admin_roles_role_idx on public.admin_roles (role);
 
 alter table public.admin_roles enable row level security;
 
+-- ---------------------------------------------------------------------------
+-- 1b. HELPER FUNCTIONS (after admin_roles exists; SQL bodies are validated at
+--     creation, so the table above must come first)
+-- ---------------------------------------------------------------------------
+-- These are SECURITY DEFINER and owned by the table owner, so RLS on
+-- admin_roles is bypassed inside them. Policies MUST call these instead of
+-- inlining `select ... from admin_roles`, which causes:
+--   "infinite recursion detected in policy for relation admin_roles".
+
+create or replace function public.is_admin(user_uuid uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.admin_roles
+    where user_id = user_uuid
+      and role in ('admin', 'superadmin')
+  );
+$$;
+
+create or replace function public.is_superadmin(user_uuid uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.admin_roles
+    where user_id = user_uuid
+      and role = 'superadmin'
+  );
+$$;
+
+create or replace function public.is_moderator(user_uuid uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.admin_roles
+    where user_id = user_uuid
+      and role in ('admin', 'moderator', 'superadmin')
+  );
+$$;
+
+grant execute on function public.is_admin(uuid) to authenticated;
+grant execute on function public.is_superadmin(uuid) to authenticated;
+grant execute on function public.is_moderator(uuid) to authenticated;
+
+drop policy if exists "Admin roles visible to admins and superadmins" on public.admin_roles;
 create policy "Admin roles visible to admins and superadmins"
   on public.admin_roles for select
   to authenticated
   using (
     auth.uid() = user_id
-    or exists (
-      select 1 from public.admin_roles
-      where user_id = auth.uid()
-        and role in ('admin', 'superadmin')
-    )
+    or public.is_admin(auth.uid())
   );
 
+drop policy if exists "Only superadmins can manage admin roles" on public.admin_roles;
 create policy "Only superadmins can manage admin roles"
   on public.admin_roles for all
   to authenticated
-  using (
-    exists (
-      select 1 from public.admin_roles
-      where user_id = auth.uid()
-        and role = 'superadmin'
-    )
-  );
+  using (public.is_superadmin(auth.uid()))
+  with check (public.is_superadmin(auth.uid()));
 
 -- ---------------------------------------------------------------------------
 -- 2. DISCOVERY SOURCES REGISTRY
@@ -68,26 +118,24 @@ create index if not exists discovery_sources_type_idx on public.discovery_source
 
 alter table public.discovery_sources enable row level security;
 
+drop policy if exists "Public sources visible to all, but only admins can modify" on public.discovery_sources;
 create policy "Public sources visible to all, but only admins can modify"
   on public.discovery_sources for select
   to anon
   using (is_active = true);
 
+drop policy if exists "Authenticated users can view all sources" on public.discovery_sources;
 create policy "Authenticated users can view all sources"
   on public.discovery_sources for select
   to authenticated
   using (true);
 
+drop policy if exists "Only admins can manage sources" on public.discovery_sources;
 create policy "Only admins can manage sources"
   on public.discovery_sources for all
   to authenticated
-  using (
-    exists (
-      select 1 from public.admin_roles
-      where user_id = auth.uid()
-        and role in ('admin', 'superadmin')
-    )
-  );
+  using (public.is_admin(auth.uid()))
+  with check (public.is_admin(auth.uid()));
 
 -- ---------------------------------------------------------------------------
 -- 3. DISCOVERY CANDIDATES TABLE
@@ -101,7 +149,7 @@ create table if not exists public.discovery_candidates (
   extracted_at timestamptz not null default now(),
   raw_content text,
   source_data jsonb not null default '{}'::jsonb,
-  
+
   -- Extracted opportunity fields
   organizer text,
   deadline text,
@@ -114,11 +162,11 @@ create table if not exists public.discovery_candidates (
   cost text,
   contact_info text,
   registration_link text,
-  
+
   -- Candidate status
   status text not null default 'new' check (status in ('new', 'processing', 'verification_pending', 'approved', 'rejected', 'archived')),
   duplicate_of_id uuid references public.discovery_candidates (id) on delete set null,
-  
+
   -- Processing metadata
   extraction_confidence real,
   processing_notes text,
@@ -135,27 +183,18 @@ create index if not exists discovery_candidates_duplicate_of_idx on public.disco
 
 alter table public.discovery_candidates enable row level security;
 
+drop policy if exists "Only admins and moderators can view candidates" on public.discovery_candidates;
 create policy "Only admins and moderators can view candidates"
   on public.discovery_candidates for select
   to authenticated
-  using (
-    exists (
-      select 1 from public.admin_roles
-      where user_id = auth.uid()
-        and role in ('admin', 'moderator', 'superadmin')
-    )
-  );
+  using (public.is_moderator(auth.uid()));
 
+drop policy if exists "Only admins can manage candidates" on public.discovery_candidates;
 create policy "Only admins can manage candidates"
   on public.discovery_candidates for all
   to authenticated
-  using (
-    exists (
-      select 1 from public.admin_roles
-      where user_id = auth.uid()
-        and role in ('admin', 'superadmin')
-    )
-  );
+  using (public.is_admin(auth.uid()))
+  with check (public.is_admin(auth.uid()));
 
 -- ---------------------------------------------------------------------------
 -- 4. VERIFICATION EVIDENCE TABLE
@@ -181,16 +220,12 @@ create index if not exists verification_evidence_verdict_idx on public.verificat
 
 alter table public.verification_evidence enable row level security;
 
+drop policy if exists "Only admins can view/manage evidence" on public.verification_evidence;
 create policy "Only admins can view/manage evidence"
   on public.verification_evidence for all
   to authenticated
-  using (
-    exists (
-      select 1 from public.admin_roles
-      where user_id = auth.uid()
-        and role in ('admin', 'moderator', 'superadmin')
-    )
-  );
+  using (public.is_moderator(auth.uid()))
+  with check (public.is_moderator(auth.uid()));
 
 -- ---------------------------------------------------------------------------
 -- 5. RISK FLAGS TABLE
@@ -217,16 +252,12 @@ create index if not exists risk_flags_resolved_idx on public.risk_flags (is_reso
 
 alter table public.risk_flags enable row level security;
 
+drop policy if exists "Only admins can view/manage flags" on public.risk_flags;
 create policy "Only admins can view/manage flags"
   on public.risk_flags for all
   to authenticated
-  using (
-    exists (
-      select 1 from public.admin_roles
-      where user_id = auth.uid()
-        and role in ('admin', 'moderator', 'superadmin')
-    )
-  );
+  using (public.is_moderator(auth.uid()))
+  with check (public.is_moderator(auth.uid()));
 
 -- ---------------------------------------------------------------------------
 -- 6. AUDIT EVENTS TABLE
@@ -254,27 +285,19 @@ create index if not exists audit_events_created_at_idx on public.audit_events (c
 
 alter table public.audit_events enable row level security;
 
+drop policy if exists "Only admins can view audit events" on public.audit_events;
 create policy "Only admins can view audit events"
   on public.audit_events for select
   to authenticated
-  using (
-    exists (
-      select 1 from public.admin_roles
-      where user_id = auth.uid()
-        and role in ('admin', 'superadmin')
-    )
-  );
+  using (public.is_admin(auth.uid()));
 
--- Audit events cannot be directly modified by users (only system can insert)
+-- Audit events cannot be directly modified by users (only append is allowed).
+drop policy if exists "Audit events are append-only" on public.audit_events;
 create policy "Audit events are append-only"
   on public.audit_events for insert
   to authenticated
   with check (
-    exists (
-      select 1 from public.admin_roles
-      where user_id = auth.uid()
-        and role in ('admin', 'superadmin')
-    )
+    public.is_admin(auth.uid())
     or actor_id = auth.uid()
   );
 
@@ -302,16 +325,12 @@ create index if not exists approval_queue_priority_idx on public.approval_queue 
 
 alter table public.approval_queue enable row level security;
 
+drop policy if exists "Only admins can view/manage approval queue" on public.approval_queue;
 create policy "Only admins can view/manage approval queue"
   on public.approval_queue for all
   to authenticated
-  using (
-    exists (
-      select 1 from public.admin_roles
-      where user_id = auth.uid()
-        and role in ('admin', 'moderator', 'superadmin')
-    )
-  );
+  using (public.is_moderator(auth.uid()))
+  with check (public.is_moderator(auth.uid()));
 
 -- ---------------------------------------------------------------------------
 -- 8. DISCOVERY JOBS TABLE (for tracking scan runs)
@@ -334,63 +353,23 @@ create index if not exists discovery_jobs_created_at_idx on public.discovery_job
 
 alter table public.discovery_jobs enable row level security;
 
+drop policy if exists "Only admins can view discovery jobs" on public.discovery_jobs;
 create policy "Only admins can view discovery jobs"
   on public.discovery_jobs for select
   to authenticated
-  using (
-    exists (
-      select 1 from public.admin_roles
-      where user_id = auth.uid()
-        and role in ('admin', 'superadmin')
-    )
-  );
+  using (public.is_admin(auth.uid()));
 
 -- ---------------------------------------------------------------------------
 -- 9. OFFICIAL PUBLISHER ACCOUNT (system identity)
 -- ---------------------------------------------------------------------------
 -- Add publisher_type to profiles if needed
 alter table public.profiles
-  add column if not exists publisher_type text check (publisher_type in ('official', null));
+  add column if not exists publisher_type text check (publisher_type in ('official') or publisher_type is null);
 
 -- Mark the official OpportunityHub account (will be created separately)
 -- This is a special account that publishes approved opportunities
 
 -- ---------------------------------------------------------------------------
--- 10. HELPER FUNCTIONS
--- ---------------------------------------------------------------------------
-
-create or replace function public.is_admin(user_uuid uuid)
-returns boolean
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select exists (
-    select 1 from public.admin_roles
-    where user_id = user_uuid
-      and role in ('admin', 'superadmin')
-  );
-$$;
-
-create or replace function public.is_moderator(user_uuid uuid)
-returns boolean
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select exists (
-    select 1 from public.admin_roles
-    where user_id = user_uuid
-      and role in ('admin', 'moderator', 'superadmin')
-  );
-$$;
-
-grant execute on function public.is_admin(uuid) to authenticated;
-grant execute on function public.is_moderator(uuid) to authenticated;
-
--- ---------------------------------------------------------------------------
--- 11. RELOAD SCHEMA
+-- 10. RELOAD SCHEMA
 -- ---------------------------------------------------------------------------
 notify pgrst, 'reload schema';

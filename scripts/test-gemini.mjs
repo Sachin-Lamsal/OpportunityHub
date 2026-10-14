@@ -37,10 +37,11 @@ console.log("Key format:", apiKey.startsWith("AQ.") ? "AQ. (auth key)" : apiKey.
 console.log("Testing Gemini API…");
 
 const models = [
-  "gemini-2.0-flash-lite",
-  "gemini-2.5-flash-lite",
-  "gemini-2.0-flash",
-  "gemini-2.5-flash",
+  "gemini-flash-latest",
+  "gemini-3.6-flash",
+  "gemini-3.5-flash",
+  "gemini-flash-lite-latest",
+  "gemini-3.5-flash-lite",
 ];
 
 for (const model of models) {

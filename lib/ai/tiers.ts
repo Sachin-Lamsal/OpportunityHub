@@ -13,14 +13,14 @@ export const AI_TIERS: readonly AiTier[] = [
   {
     id: "premium",
     label: "Primary Model (Flash)",
-    models: ["gemini-2.0-flash", "gemini-2.5-flash"],
+    models: ["gemini-flash-latest", "gemini-3.6-flash", "gemini-3.5-flash"],
     maxOutputTokens: 2048,
     temperature: 0.2,
   },
   {
     id: "standard",
     label: "Fallback Model (Flash-Lite)",
-    models: ["gemini-2.0-flash-lite", "gemini-2.5-flash-lite"],
+    models: ["gemini-flash-lite-latest", "gemini-3.5-flash-lite"],
     maxOutputTokens: 1024,
     temperature: 0.2,
   },

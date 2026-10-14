@@ -46,9 +46,9 @@ export async function getCandidateWithEvidence(
   const supabase = await createClient();
 
   const [
-    { data: candidate, error: candError },
-    { data: evidence, error: evidError },
-    { data: flags, error: flagError },
+    { data: candidate },
+    { data: evidence },
+    { data: flags },
   ] = await Promise.all([
     supabase
       .from("discovery_candidates")
