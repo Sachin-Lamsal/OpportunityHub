@@ -126,7 +126,6 @@ export interface OpportunityComment {
   content: string;
   parent_id: string | null;
   created_at: string;
-  user_email?: string;
   account_type?: AccountType;
   organization_name?: string | null;
 }
@@ -141,7 +140,8 @@ export interface OpportunityReview {
   skills_developed: string | null;
   verified_participant: boolean;
   created_at: string;
-  user_email?: string;
+  account_type?: AccountType;
+  organization_name?: string | null;
 }
 
 export interface OrganizationFollow {

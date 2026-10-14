@@ -409,6 +409,131 @@ export async function logout(formData?: FormData) {
   redirect(accountType ? loginPathFor(accountType) : "/login");
 }
 
+/**
+ * Builds an absolute, trusted origin for auth redirects. Never derives the
+ * host from the incoming request, which would allow Host-header injection.
+ */
+function authRedirectOrigin(): string {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (configured) return configured.replace(/\/+$/, "");
+
+  const vercelUrl = process.env.VERCEL_URL?.trim();
+  if (vercelUrl) return `https://${vercelUrl.replace(/\/+$/, "")}`;
+
+  return "http://localhost:3000";
+}
+
+/**
+ * Sends a Supabase password-recovery email.
+ * Always reports success regardless of whether the address exists, so the form
+ * cannot be used to enumerate registered accounts.
+ */
+export async function requestPasswordReset(
+  _prevState: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  const email = (formData.get("email") as string)?.trim().toLowerCase();
+
+  if (!email) {
+    return { error: "Please enter your email address." };
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return { error: "Please enter a valid email address." };
+  }
+
+  if (!hasSupabaseEnv()) {
+    return {
+      error:
+        "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local.",
+    };
+  }
+
+  const supabase = await createClient();
+  const redirectTo = `${authRedirectOrigin()}/auth/callback?next=/reset-password`;
+
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    });
+
+    if (error) {
+      console.error("Password reset request failed:", error.message);
+      return {
+        error:
+          "We could not send the reset email right now. Please try again later.",
+      };
+    }
+  } catch {
+    return {
+      error:
+        "Could not reach Supabase. Check NEXT_PUBLIC_SUPABASE_URL in .env.local and your network connection.",
+    };
+  }
+
+  return {
+    success:
+      "If an account exists for that address, a password reset link is on its way.",
+  };
+}
+
+/**
+ * Completes a password reset. The user must arrive from Supabase's recovery
+ * link, which establishes a session; otherwise this returns an error.
+ */
+export async function updatePassword(
+  _prevState: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  const password = formData.get("password") as string;
+  const confirmPassword = formData.get("confirm_password") as string;
+
+  if (!password || !confirmPassword) {
+    return { error: "Please fill in both password fields." };
+  }
+
+  if (password !== confirmPassword) {
+    return { error: "Passwords do not match." };
+  }
+
+  if (password.length < 8) {
+    return { error: "Password must be at least 8 characters long." };
+  }
+
+  if (!hasSupabaseEnv()) {
+    return {
+      error:
+        "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local.",
+    };
+  }
+
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      error:
+        "This reset link is invalid or has expired. Please request a new reset email.",
+    };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) {
+    console.error("Password update failed:", error.message);
+    return {
+      error:
+        "Could not update your password. The reset link may have expired — please request a new one.",
+    };
+  }
+
+  return { success: "Your password has been updated. You can now log in." };
+}
+
 export async function updateProfile(
   _prevState: AuthState,
   formData: FormData,

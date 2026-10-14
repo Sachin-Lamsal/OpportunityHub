@@ -20,12 +20,57 @@ export interface IngestResponse {
 }
 
 /**
+ * Guards the ingestion helpers.
+ *
+ * These are exported server actions, so the page-level `canManageOpportunities`
+ * check on /opportunities/ingest does NOT protect them — any authenticated
+ * user could invoke them directly. They also trigger paid Gemini calls, so they
+ * must be restricted to publisher accounts before any work is done.
+ */
+async function requirePublisherAccount(): Promise<
+  { ok: true; userId: string } | { ok: false; error: string }
+> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      ok: false,
+      error: "You must be signed in to ingest opportunities.",
+    };
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("account_type")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!canManageOpportunities(profile?.account_type as AccountType | undefined)) {
+    return {
+      ok: false,
+      error: "Only schools and organizations can ingest new opportunities.",
+    };
+  }
+
+  return { ok: true, userId: user.id };
+}
+
+/**
  * Scrapes a public web page, extracts content, and uses AI to format it into an opportunity.
  */
 export async function ingestFromUrl(url: string): Promise<IngestResponse> {
   const trimmedUrl = url.trim();
   if (!trimmedUrl) {
     return { success: false, error: "Please provide a valid web URL." };
+  }
+
+  const publisher = await requirePublisherAccount();
+  if (!publisher.ok) {
+    return { success: false, error: publisher.error };
   }
 
   try {
@@ -75,6 +120,11 @@ export async function ingestFromUrl(url: string): Promise<IngestResponse> {
  * then formats it into a structured opportunity draft.
  */
 export async function ingestFromImage(formData: FormData): Promise<IngestResponse> {
+  const publisher = await requirePublisherAccount();
+  if (!publisher.ok) {
+    return { success: false, error: publisher.error };
+  }
+
   const file = formData.get("file") as File | null;
   const imageUrl = (formData.get("image_url") as string)?.trim();
 

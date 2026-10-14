@@ -1,6 +1,6 @@
 import Button from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { getApprovalQueue, getAuditEvents } from "@/lib/queries/discovery";
+import { getApprovalQueue, getAuditEvents, getAdminDashboardStats } from "@/lib/queries/discovery";
 
 export const metadata = {
   title: "Admin Dashboard",
@@ -9,6 +9,7 @@ export const metadata = {
 export default async function AdminDashboard() {
   const queue = await getApprovalQueue({ status: "pending" });
   const auditEvents = await getAuditEvents(10);
+  const stats = await getAdminDashboardStats();
 
   return (
     <div className="space-y-8">
@@ -21,15 +22,15 @@ export default async function AdminDashboard() {
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
-          <div className="text-4xl font-bold text-indigo-600">{queue.length}</div>
+          <div className="text-4xl font-bold text-indigo-600">{stats.pendingReview}</div>
           <p className="mt-1 text-sm text-slate-600">Pending Review</p>
         </Card>
         <Card>
-          <div className="text-4xl font-bold text-green-600">0</div>
+          <div className="text-4xl font-bold text-green-600">{stats.approvedToday}</div>
           <p className="mt-1 text-sm text-slate-600">Approved Today</p>
         </Card>
         <Card>
-          <div className="text-4xl font-bold text-amber-600">0</div>
+          <div className="text-4xl font-bold text-amber-600">{stats.flaggedIssues}</div>
           <p className="mt-1 text-sm text-slate-600">Flagged Issues</p>
         </Card>
       </div>

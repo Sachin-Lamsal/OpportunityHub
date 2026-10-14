@@ -3,10 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { logAuditEvent } from "@/lib/discovery/audit";
 
 
 /**
- * Create a discovery candidate from a URL or manual submission
+ * Create a discovery candidate from a URL or manual submission.
+ * Admin-gated: these writes use the service role (bypassing RLS), so the
+ * caller must be a verified admin.
  */
 export async function createDiscoveryCandidate(data: {
   original_url: string;
@@ -24,11 +27,30 @@ export async function createDiscoveryCandidate(data: {
   source_id?: string;
   raw_content?: string;
 }): Promise<{ success: boolean; candidateId?: string; error?: string }> {
+  const authClient = await createClient();
+  const {
+    data: { user },
+  } = await authClient.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const { data: adminRole } = await authClient
+    .from("admin_roles")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!adminRole) {
+    return { success: false, error: "Admin access required" };
+  }
+
   try {
     // Prefer the service-role client (bypasses RLS for system/pipeline writes).
     // Fall back to the caller's authenticated session client so the action still
     // works when SUPABASE_SERVICE_ROLE_KEY is not configured; RLS then applies.
-    const client = createAdminClient() ?? (await createClient());
+    const client = createAdminClient() ?? authClient;
 
     const { data: candidate, error } = await client
       .from("discovery_candidates")
@@ -395,37 +417,5 @@ export async function rejectCandidate(
       success: false,
       error: err instanceof Error ? err.message : "Unknown error",
     };
-  }
-}
-
-/**
- * Log audit event
- */
-export async function logAuditEvent(data: {
-  action: string;
-  actor_id?: string;
-  actor_type?: string;
-  target_type?: string;
-  target_id?: string;
-  details?: Record<string, unknown>;
-  success: boolean;
-  error_message?: string;
-}): Promise<void> {
-  try {
-    const client = createAdminClient() ?? (await createClient());
-
-    await client.from("audit_events").insert({
-      action: data.action,
-      actor_id: data.actor_id || null,
-      actor_type: data.actor_type || null,
-      target_type: data.target_type || null,
-      target_id: data.target_id || null,
-      details: data.details || null,
-      success: data.success,
-      error_message: data.error_message || null,
-      created_at: new Date().toISOString(),
-    });
-  } catch (err) {
-    console.error("Failed to log audit event:", err);
   }
 }

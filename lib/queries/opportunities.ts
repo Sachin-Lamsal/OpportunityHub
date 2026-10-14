@@ -48,6 +48,15 @@ export async function getOpportunitiesCreatedByUser(
   return (data ?? []) as Opportunity[];
 }
 
+/**
+ * PostgREST `.or()` grammar treats these characters as structural delimiters.
+ * Stripping them prevents a user-supplied search term from injecting extra
+ * filter expressions (e.g. `,is_verified.eq.true`).
+ */
+function sanitizePostgrestSearchTerm(term: string): string {
+  return term.replace(/[,()"\\]/g, " ").replace(/\s+/g, " ").trim();
+}
+
 export async function getOpportunities(
   filters: OpportunityFilters = {},
 ): Promise<Opportunity[]> {
@@ -91,9 +100,8 @@ export async function getOpportunities(
   }
 
   if (filters.q) {
-    const searchTerm = filters.q.trim();
+    const searchTerm = sanitizePostgrestSearchTerm(filters.q.trim());
     if (searchTerm.length > 0 && searchTerm.length <= 200) {
-      // Use ilike with wildcards - Supabase properly escapes the searchTerm value
       query = query.or(
         `title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,organizer.ilike.%${searchTerm}%,subject_area.ilike.%${searchTerm}%`,
       );

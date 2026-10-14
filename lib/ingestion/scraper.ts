@@ -4,6 +4,11 @@
  * to be plugged in seamlessly.
  */
 
+import { assertSafeOutboundUrl } from "@/lib/security/url-guard";
+
+const MAX_REDIRECTS = 5;
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+
 export interface ScrapedResult {
   url: string;
   title?: string;
@@ -15,7 +20,7 @@ export interface ScrapedResult {
 
 export interface ScraperAdapter {
   name: string;
-  scrape(url: string): Promise<ScrapedResult>;
+  scrape(url: string, signal?: AbortSignal): Promise<ScrapedResult>;
 }
 
 /**
@@ -26,29 +31,57 @@ export interface ScraperAdapter {
 export class DefaultFetchScraper implements ScraperAdapter {
   name = "default-fetch";
 
-  async scrape(url: string): Promise<ScrapedResult> {
-    const trimmedUrl = url.trim();
-    if (!trimmedUrl.startsWith("http://") && !trimmedUrl.startsWith("https://")) {
-      throw new Error("Invalid URL. Must start with http:// or https://");
+  async scrape(url: string, signal?: AbortSignal): Promise<ScrapedResult> {
+    const startUrl = await assertSafeOutboundUrl(url);
+    const { html, finalUrl } = await this.fetchWithSafeRedirects(startUrl, signal);
+    return this.parseHtml(finalUrl, html);
+  }
+
+  /**
+   * Fetches a URL while re-validating every redirect hop. Prevents SSRF via
+   * open redirects to internal addresses and bounds the redirect chain.
+   */
+  private async fetchWithSafeRedirects(
+    startUrl: URL,
+    signal?: AbortSignal,
+  ): Promise<{ html: string; finalUrl: string }> {
+    let currentUrl = startUrl;
+
+    for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+      const response = await fetch(currentUrl.href, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 OpportunityHub/1.0",
+          Accept:
+            "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+          "Accept-Language": "en-US,en;q=0.9",
+        },
+        redirect: "manual",
+        signal,
+        next: { revalidate: 0 },
+      });
+
+      if (REDIRECT_STATUSES.has(response.status)) {
+        const location = response.headers.get("location");
+        if (!location) {
+          throw new Error("Redirect response missing Location header.");
+        }
+        if (hop === MAX_REDIRECTS) {
+          throw new Error("Too many redirects.");
+        }
+        currentUrl = await assertSafeOutboundUrl(new URL(location, currentUrl).href);
+        continue;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch URL (HTTP ${response.status}: ${response.statusText})`);
+      }
+
+      const html = await response.text();
+      return { html, finalUrl: currentUrl.href };
     }
 
-    const response = await fetch(trimmedUrl, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 OpportunityHub/1.0",
-        Accept:
-          "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-      },
-      next: { revalidate: 0 },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch URL (HTTP ${response.status}: ${response.statusText})`);
-    }
-
-    const html = await response.text();
-    return this.parseHtml(trimmedUrl, html);
+    throw new Error("Too many redirects.");
   }
 
   private parseHtml(url: string, html: string): ScrapedResult {

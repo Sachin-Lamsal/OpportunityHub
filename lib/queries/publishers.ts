@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { UUID_RE } from "@/lib/auth/account";
 import type { AccountType, Opportunity, Profile } from "@/lib/types";
 
 export interface PublicPublisherProfile {
@@ -85,8 +86,13 @@ export async function getRelatedEditions(
   opportunity: Opportunity,
 ): Promise<Opportunity[]> {
   const supabase = await createClient();
-  const parentId =
-    opportunity.parent_opportunity_id ?? opportunity.id;
+  const parentId = opportunity.parent_opportunity_id ?? opportunity.id;
+
+  // This value reaches the PostgREST `.or()` grammar as raw filter syntax, so
+  // it must be a well-formed UUID before interpolation.
+  if (!UUID_RE.test(parentId ?? "")) {
+    return [];
+  }
 
   const { data, error } = await supabase
     .from("opportunities")

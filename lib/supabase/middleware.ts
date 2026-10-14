@@ -17,6 +17,9 @@ function isPublicRoute(pathname: string): boolean {
   if (pathname.startsWith("/auth/callback")) return true;
   if (pathname === "/login" || pathname.startsWith("/login/")) return true;
   if (pathname === "/signup" || pathname.startsWith("/signup/")) return true;
+  // Password recovery must be reachable while signed out.
+  if (pathname === "/forgot-password") return true;
+  if (pathname === "/reset-password") return true;
   // Opportunities browsing and viewing are public before signing in
   if (pathname === "/opportunities") return true;
   if (

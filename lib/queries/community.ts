@@ -16,7 +16,6 @@ export async function getOpportunityComments(
       parent_id,
       created_at,
       profiles (
-        email,
         account_type,
         organization_name
       )
@@ -38,7 +37,6 @@ export async function getOpportunityComments(
       content: row.content as string,
       parent_id: row.parent_id as string | null,
       created_at: row.created_at as string,
-      user_email: profiles?.email as string | undefined,
       account_type: profiles?.account_type as AccountType | undefined,
       organization_name: profiles?.organization_name as string | null | undefined,
     };
@@ -63,7 +61,8 @@ export async function getOpportunityReviews(
       verified_participant,
       created_at,
       profiles (
-        email
+        account_type,
+        organization_name
       )
     `)
     .eq("opportunity_id", opportunityId)
@@ -86,7 +85,8 @@ export async function getOpportunityReviews(
       skills_developed: row.skills_developed as string | null,
       verified_participant: row.verified_participant as boolean,
       created_at: row.created_at as string,
-      user_email: profiles?.email as string | undefined,
+      account_type: profiles?.account_type as AccountType | undefined,
+      organization_name: profiles?.organization_name as string | null | undefined,
     };
   });
 }

@@ -13,11 +13,11 @@ export interface WebsiteDiscoveryResult {
 export class WebsiteSourceAdapter {
   name = "website";
 
-  async discover(url: string): Promise<WebsiteDiscoveryResult> {
+  async discover(url: string, signal?: AbortSignal): Promise<WebsiteDiscoveryResult> {
     const errors: string[] = [];
     try {
       const scraper = getScraper();
-      const result = await scraper.scrape(url);
+      const result = await scraper.scrape(url, signal);
       return {
         url,
         title: result.title,

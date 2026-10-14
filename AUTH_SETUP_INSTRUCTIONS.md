@@ -12,14 +12,14 @@ Your credentials have been added to `.env.local`:
 
 ### Step 1: Enable Google OAuth in Supabase (5 minutes)
 
-1. Go to your Supabase Dashboard: https://app.supabase.com/project/iofmootqzpkzeuedmamr
+1. Go to your Supabase Dashboard and open your project (Settings → API for the project URL).
 2. Navigate to **Authentication → Providers**
 3. Find **Google** in the list
 4. Click to expand Google provider
 5. Toggle **Enable Google** to ON
-6. Paste your credentials:
-   - **Client ID**: `***REMOVED-GOOGLE-CLIENT-ID***.apps.googleusercontent.com`
-   - **Client Secret**: `***REMOVED-GOOGLE-CLIENT-SECRET***`
+6. Paste your credentials (from your Google Cloud Console OAuth client, or your local `.env.local`):
+   - **Client ID**: `<YOUR_GOOGLE_CLIENT_ID>`
+   - **Client Secret**: `<YOUR_GOOGLE_CLIENT_SECRET>`
 7. Click **Save**
 
 ### Step 2: Configure Redirect URLs (2 minutes)
@@ -75,18 +75,18 @@ User logged in, redirected to dashboard
 
 ## 📝 Environment Variables Added
 
-Your `.env.local` now has:
+Your `.env.local` should contain (values are NOT stored in this file/repo):
 ```
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=***REMOVED-GOOGLE-CLIENT-ID***.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=***REMOVED-GOOGLE-CLIENT-SECRET***
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=<YOUR_GOOGLE_CLIENT_ID>
+GOOGLE_CLIENT_SECRET=<YOUR_GOOGLE_CLIENT_SECRET>
 ```
 
-These are used by Supabase to handle OAuth redirects.
+These are used by Supabase to handle OAuth redirects. Never commit real values.
 
 ## 🔗 Redirect URI in Google Cloud
 
 Your Google OAuth app should have this redirect URI configured:
-- `https://hdmesijuuqgmrmusdtwq.supabase.co/auth/v1/callback`
+- `https://<YOUR_SUPABASE_PROJECT_REF>.supabase.co/auth/v1/callback`
 
 (Supabase handles this automatically, but verify in Google Cloud Console if having issues)
 

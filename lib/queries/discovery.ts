@@ -89,6 +89,45 @@ export async function getAuditEvents(limit = 50): Promise<AuditEvent[]> {
   return (data || []) as AuditEvent[];
 }
 
+export interface AdminDashboardStats {
+  pendingReview: number;
+  approvedToday: number;
+  flaggedIssues: number;
+}
+
+export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
+  const supabase = await createClient();
+
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+
+  const [pending, approved, flagged] = await Promise.all([
+    supabase
+      .from("approval_queue")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending"),
+    supabase
+      .from("approval_queue")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "approved")
+      .gte("decision_at", startOfToday.toISOString()),
+    supabase
+      .from("risk_flags")
+      .select("id", { count: "exact", head: true })
+      .eq("is_resolved", false),
+  ]);
+
+  if (pending.error) console.error("Failed to count pending reviews:", pending.error);
+  if (approved.error) console.error("Failed to count approvals:", approved.error);
+  if (flagged.error) console.error("Failed to count risk flags:", flagged.error);
+
+  return {
+    pendingReview: pending.count ?? 0,
+    approvedToday: approved.count ?? 0,
+    flaggedIssues: flagged.count ?? 0,
+  };
+}
+
 export async function getCandidatesToReview(): Promise<DiscoveryCandidate[]> {
   const supabase = await createClient();
 
