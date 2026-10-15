@@ -7,6 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
+    "test": "node --import ./scripts/ts-paths.mjs --test \"tests/**/*.test.ts\"",
     "test:gemini": "node scripts/test-gemini.mjs"
   },
   "dependencies": {

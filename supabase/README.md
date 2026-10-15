@@ -1,33 +1,19 @@
 # OpportunityHub — Supabase Database Setup
 
-## Option 1: Fresh All-in-One Setup (Recommended)
-Paste and run `setup-all.sql` in **Supabase Dashboard → SQL Editor → New query → Run**.
-This single script sets up:
-- Complete database schema & tables (`profiles`, `opportunities`, `saved_opportunities`, `activities`, `school_invite_codes`, `ai_user_usage`)
-- Multi-role RBAC for students, schools, and organizations
-- Invite code verification & redemption RPCs
-- Public school code lookup RPC (`resolve_school_by_code`)
-- Secure Row Level Security (RLS) policies and triggers (including public guest access to opportunities)
-- All integrated verified opportunities seed data (Parts 1, 2, and 3 with official registration URLs)
-- Deadline reminder and notification preferences for Brevo/Resend
+Run these files in **Supabase Dashboard → SQL Editor → New query**, one at a time and in this exact order:
 
-*(Alternatively, run `complete-schema.sql` then `seed-opportunities.sql` — the seed file merges parts 1–3. Use `seed-opportunities-part3.sql` only if you seeded with an older part-1-only file; see migration step 8.)*
+1. `setup-all.sql` — creates the application tables, access rules, functions, and initial opportunity data.
+2. `migration-discovery-verification-system.sql` — creates administrator roles and discovery-review tables.
+3. `migration-security-hardening.sql` — restricts database functions that could expose private account data.
+4. `migration-publisher-workflows.sql` — creates publisher verification and the draft → review → published listing process.
 
-Legacy split files `schema.sql`, `opportunities.sql`, and `activities.sql` were removed; use `complete-schema.sql` or `setup-all.sql` instead.
+All four files are safe to run again. Do not run more than these four files; the older split setup and upgrade scripts were intentionally removed to avoid conflicting instructions.
 
-## Option 2: Incremental Migrations (for Existing Databases)
-If you already ran an older version of `complete-schema.sql`, run the migrations in order:
-1. `migrate-account-types.sql` (multi-role profiles & opportunities)
-2. `migrate-school-invites-and-settings.sql` (invite codes & school settings)
-3. `migrate-opportunity-ai-fields.sql` (Gemini enrichment columns)
-4. `migrate-ai-usage.sql` (monthly rate limits)
-5. `migrate-public-opportunities.sql` (public/guest browsing for opportunities)
-6. `fix-profiles-recursion.sql` (resolves RLS infinite recursion on profiles)
-7. `migration-email-reminders.sql` (deadline reminder toggles & newsletter preferences)
-8. `seed-opportunities-part3.sql` (official registration links, removals & corrections)
-9. `migration-ingestion-and-verification.sql` (verification status, source tracking, verify/reject RPCs)
-10. `migration-opportunity-ai-enrich-rpc.sql` (safe `save_opportunity_ai_enrichment` RPC for student AI detail saves)
-11. `migration-community-and-onboarding.sql` (comments, reviews, follows, onboarding, activity ↔ opportunity link)
-12. `migration-opportunity-publisher-fixes.sql` (publisher-only verify/reject, tighter UPDATE RLS, drop duplicate title index)
+## After the SQL succeeds
 
-Fresh installs using **`setup-all.sql`** already include steps 9–12; run incremental migrations only on older databases.
+1. Create an OpportunityHub account for yourself.
+2. Add that account as the first `superadmin` in `admin_roles`.
+3. Configure Supabase Authentication with your deployed URL and `https://YOUR-DOMAIN/auth/callback`.
+4. Add the required environment variables in Vercel.
+
+The main project README contains the deployment checklist and environment-variable list.

@@ -33,6 +33,8 @@ interface UsageRow {
   reset_month: string;
 }
 
+const MAX_CAS_ATTEMPTS = 5;
+
 function currentResetMonth(): string {
   const now = new Date();
   const month = String(now.getUTCMonth() + 1).padStart(2, "0");
@@ -64,7 +66,7 @@ export function resolveActiveTier(row: UsageRow): AiTier | null {
   return null;
 }
 
-async function getOrCreateUsageRow(userId: string): Promise<UsageRow> {
+export async function getOrCreateUsageRow(userId: string): Promise<UsageRow> {
   const supabase = await createClient();
   const month = currentResetMonth();
 
@@ -76,7 +78,7 @@ async function getOrCreateUsageRow(userId: string): Promise<UsageRow> {
 
   if (selectError) {
     throw new Error(
-      `Could not load AI usage. Run supabase/migrate-ai-usage.sql — ${selectError.message}`,
+      `Could not load AI usage. Complete the database setup described in supabase/README.md — ${selectError.message}`,
     );
   }
 
@@ -89,7 +91,7 @@ async function getOrCreateUsageRow(userId: string): Promise<UsageRow> {
 
     if (insertError || !created) {
       throw new Error(
-        `Could not create AI usage row. Run supabase/migrate-ai-usage.sql — ${insertError?.message}`,
+        `Could not create AI usage row. Complete the database setup described in supabase/README.md — ${insertError?.message}`,
       );
     }
 
@@ -156,26 +158,134 @@ export async function getAIUsageSummaryForUser(
   };
 }
 
-async function consumeTierCredit(userId: string, tierId: AiTierId): Promise<void> {
+const TIER_COLUMN: Record<AiTierId, "premium_used" | "standard_used" | "basic_used"> =
+  {
+    premium: "premium_used",
+    standard: "standard_used",
+    basic: "basic_used",
+  };
+
+/**
+ * Atomically increments a usage counter using compare-and-swap.
+ *
+ * The previous implementation read `used`, then wrote `used + 1`. Two
+ * concurrent requests both read `used = 0`, both passed the limit check, and
+ * both wrote `1` — silently granting double the quota.
+ *
+ * A single `UPDATE ... WHERE column = <observed value>` is atomic in Postgres:
+ * the row is locked, the predicate re-checked, and the write committed as one
+ * statement. If a competing transaction changed the value first, our predicate
+ * no longer matches, zero rows are returned, and we retry. This gives real
+ * mutual exclusion WITHOUT requiring a database migration or RPC.
+ */
+async function atomicIncrement(
+  userId: string,
+  column: "premium_used" | "standard_used" | "basic_used",
+  attempts = MAX_CAS_ATTEMPTS,
+): Promise<number | null> {
   const supabase = await createClient();
-  const row = await getOrCreateUsageRow(userId);
-  const column =
-    tierId === "premium"
-      ? "premium_used"
-      : tierId === "standard"
-        ? "standard_used"
-        : "basic_used";
 
-  const { error } = await supabase
-    .from("ai_user_usage")
-    .update({
-      [column]: usedForTier(row, tierId) + 1,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("user_id", userId);
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const row = await getOrCreateUsageRow(userId);
+    const current = row[column];
 
-  if (error) {
-    throw new Error(`Could not record AI usage — ${error.message}`);
+    const { data, error } = await supabase
+      .from("ai_user_usage")
+      .update({
+        [column]: current + 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId)
+      .eq(column, current)
+      .select(column)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Could not record AI usage — ${error.message}`);
+    }
+
+    if (data) {
+      return current + 1;
+    }
+
+    // Lost the race: another request consumed a credit between our read and
+    // our write. Re-read and try again.
+    await new Promise((r) => setTimeout(r, 25 * (attempt + 1) + Math.random() * 25));
+  }
+
+  return null;
+}
+
+/**
+ * Reserves one credit for `userId` atomically, BEFORE any paid work happens.
+ *
+ * Reserving up-front (rather than charging afterwards) is what stops concurrent
+ * requests from collectively exceeding the limit: every request must win a
+ * slot before it is allowed to call the provider.
+ */
+export async function reserveTierCredit(
+  userId: string,
+): Promise<{ granted: true; tier: AiTier } | { granted: false; message: string }> {
+  for (let attempt = 0; attempt < MAX_CAS_ATTEMPTS; attempt++) {
+    const row = await getOrCreateUsageRow(userId);
+    const tier = resolveActiveTier(row);
+
+    if (!tier) {
+      const limits = getTierLimits();
+      const total = limits.premium + limits.standard + (limits.basic ?? 0);
+      return {
+        granted: false,
+        message: `You have used all ${total} of your monthly AI requests. They reset on the 1st. Offline rule-based guidance is still available.`,
+      };
+    }
+
+    const updated = await atomicIncrement(userId, TIER_COLUMN[tier.id]);
+
+    if (updated !== null) {
+      return { granted: true, tier };
+    }
+  }
+
+  return {
+    granted: false,
+    message:
+      "Could not reserve an AI request right now. Please try again in a moment.",
+  };
+}
+
+/**
+ * Returns a previously reserved credit when the provider call failed, so users
+ * are not charged for our errors.
+ */
+export async function refundTierCredit(userId: string, tierId: AiTierId): Promise<void> {
+  const supabase = await createClient();
+  const column = TIER_COLUMN[tierId];
+
+  for (let attempt = 0; attempt < MAX_CAS_ATTEMPTS; attempt++) {
+    const row = await getOrCreateUsageRow(userId);
+    const current = row[column];
+
+    if (current <= 0) return;
+
+    const { data, error } = await supabase
+      .from("ai_user_usage")
+      .update({
+        [column]: current - 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId)
+      .eq(column, current)
+      .select(column)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Failed to refund AI credit:", error.message);
+      return;
+    }
+
+    if (data) return;
+
+    await new Promise((r) => setTimeout(r, 25 * (attempt + 1)));
   }
 }
 
@@ -194,36 +304,34 @@ export async function generateWithUserQuota(
   userId: string,
   prompt: string,
 ): Promise<GenerateWithQuotaResult> {
-  const row = await getOrCreateUsageRow(userId);
-  const tier = resolveActiveTier(row);
+  // Reserve BEFORE calling the provider. Charging afterwards (the previous
+  // behaviour) let concurrent requests all pass the limit check.
+  const reservation = await reserveTierCredit(userId);
 
-  if (!tier) {
-    const limits = getTierLimits();
-    const total = limits.premium + limits.standard + (limits.basic ?? 0);
-    return {
-      text: null,
-      quotaExhausted: true,
-      error: `You have completed all ${total} of your monthly AI talks. Talks reset on the 1st. Offline rule-based guidance is active below.`,
-    };
+  if (!reservation.granted) {
+    return { text: null, quotaExhausted: true, error: reservation.message };
   }
 
-  let result = await generateTextWithTier(prompt, tier);
-  let usedTier = tier;
+  let result = await generateTextWithTier(prompt, reservation.tier);
+  let usedTier = reservation.tier;
 
   // Resilient model fallback: if primary model fails, try the fallback model if standard quota is available
-  if (!result.text && tier.id === "premium") {
+  if (!result.text && usedTier.id === "premium") {
     const fallbackTier = AI_TIERS.find((t) => t.id === "standard");
-    if (fallbackTier && remainingForTier(row, fallbackTier.id) > 0) {
+    const latestRow = await getOrCreateUsageRow(userId);
+    if (fallbackTier && remainingForTier(latestRow, fallbackTier.id) > 0) {
       const fallbackResult = await generateTextWithTier(prompt, fallbackTier);
       if (fallbackResult.text) {
         result = fallbackResult;
+        // We reserved premium but actually consumed standard. Correct the
+        // accounting rather than silently charging the wrong bucket.
+        await refundTierCredit(userId, reservation.tier.id);
         usedTier = fallbackTier;
       }
     }
   }
 
   if (result.text) {
-    await consumeTierCredit(userId, usedTier.id);
     return {
       ...result,
       tierUsed: usedTier.id,
@@ -231,6 +339,8 @@ export async function generateWithUserQuota(
     };
   }
 
+  // Provider failed: give the credit back.
+  await refundTierCredit(userId, usedTier.id);
   return result;
 }
 

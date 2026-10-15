@@ -1,5 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
-import type { AccountType, Opportunity, Profile } from "@/lib/types";
+import { UUID_RE } from "@/lib/auth/account";
+import type {
+  AccountType,
+  Opportunity,
+  Profile,
+  PublisherVerificationStatus,
+} from "@/lib/types";
+import { PUBLIC_OPPORTUNITY_STATUSES } from "@/lib/opportunities/workflow";
 
 export interface PublicPublisherProfile {
   id: string;
@@ -8,6 +15,10 @@ export interface PublicPublisherProfile {
   organization_description: string | null;
   school_code: string | null;
   contact_info: string | null;
+  website_url: string | null;
+  social_links: Record<string, string> | null;
+  publisher_verification_status: PublisherVerificationStatus;
+  publisher_verified_at: string | null;
   created_at: string;
 }
 
@@ -17,9 +28,9 @@ export async function getPublicPublisherProfile(
   const supabase = await createClient();
 
   const { data, error } = await supabase
-    .from("profiles")
+    .from("publisher_profiles")
     .select(
-      "id, account_type, organization_name, organization_description, school_code, contact_info, created_at",
+      "id, account_type, organization_name, organization_description, school_code, contact_info, website_url, social_links, publisher_verification_status, publisher_verified_at, created_at",
     )
     .eq("id", id)
     .in("account_type", ["school", "organization"])
@@ -42,6 +53,7 @@ export async function getOpportunitiesByPublisher(
     .from("opportunities")
     .select("*")
     .eq("created_by", publisherId)
+    .in("lifecycle_status", [...PUBLIC_OPPORTUNITY_STATUSES])
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -85,8 +97,13 @@ export async function getRelatedEditions(
   opportunity: Opportunity,
 ): Promise<Opportunity[]> {
   const supabase = await createClient();
-  const parentId =
-    opportunity.parent_opportunity_id ?? opportunity.id;
+  const parentId = opportunity.parent_opportunity_id ?? opportunity.id;
+
+  // This value reaches the PostgREST `.or()` grammar as raw filter syntax, so
+  // it must be a well-formed UUID before interpolation.
+  if (!UUID_RE.test(parentId ?? "")) {
+    return [];
+  }
 
   const { data, error } = await supabase
     .from("opportunities")

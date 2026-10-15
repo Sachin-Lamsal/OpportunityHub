@@ -11,6 +11,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import FormMessage from "@/components/ui/FormMessage";
 import { Card } from "@/components/ui/Card";
+import GmailSignupButton from "@/components/auth/GmailSignupButton";
 
 const initialState: AuthState = {};
 
@@ -35,6 +36,19 @@ export default function LoginForm({ accountType, authError }: LoginFormProps) {
       <form action={formAction} className="mt-6 space-y-4">
         <input type="hidden" name="account_type" value={accountType} />
         <FormMessage error={authError ?? state.error} />
+
+        {/* Gmail Login Button */}
+        <div className="mb-6">
+          <GmailSignupButton accountType={accountType} />
+          <div className="relative mt-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-slate-500">Or continue with email</span>
+            </div>
+          </div>
+        </div>
 
         <Input
           label="Email"

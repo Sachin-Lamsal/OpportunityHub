@@ -9,20 +9,29 @@ export const dynamic = "force-dynamic";
  * Schedule via Vercel Cron (e.g. 0 9 1 * *).
  */
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
+  // SECURITY: Newsletter cron MUST require authentication (same pattern as reminders)
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+
+  if (!cronSecret) {
+    console.error("[CRON/NEWSLETTER] SECURITY ERROR: CRON_SECRET not configured. Endpoint is open to public abuse.");
+    return NextResponse.json(
+      { error: "Cron endpoint not properly configured. Set CRON_SECRET environment variable." },
+      { status: 503 }
+    );
+  }
+
+  const authHeader = request.headers.get("authorization");
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // SECURITY: Admin client is required, do not fallback
   const adminClient = createAdminClient();
   if (!adminClient) {
+    console.error("[CRON/NEWSLETTER] SECURITY ERROR: SUPABASE_SERVICE_ROLE_KEY not configured.");
     return NextResponse.json(
-      {
-        error:
-          "SUPABASE_SERVICE_ROLE_KEY is required for the newsletter cron.",
-      },
-      { status: 500 },
+      { error: "Cron job misconfigured: missing SUPABASE_SERVICE_ROLE_KEY" },
+      { status: 503 }
     );
   }
 
@@ -42,6 +51,7 @@ export async function GET(request: Request) {
   const { data: opportunities, error: oppError } = await adminClient
     .from("opportunities")
     .select("id, title, organizer, deadline, type")
+    .eq("lifecycle_status", "published")
     .eq("is_verified", true)
     .order("created_at", { ascending: false })
     .limit(8);

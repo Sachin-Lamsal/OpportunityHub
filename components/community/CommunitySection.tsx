@@ -35,7 +35,7 @@ export default function CommunitySection({
   // Comment form state
   const [newComment, setNewComment] = useState("");
   const [replyingToId, setReplyingToId] = useState<string | null>(null);
-  const [commentMsg, setCommentMsg] = useState<{ error?: string; success?: string } | null>(null);
+  const [, setCommentMsg] = useState<{ error?: string; success?: string } | null>(null);
 
   function handleSubmitReview(e: FormEvent) {
     e.preventDefault();
@@ -219,7 +219,7 @@ export default function CommunitySection({
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-xs text-slate-900">
-                        {rev.user_email ? rev.user_email.split("@")[0] : "Participant"}
+                        {rev.organization_name || "Participant"}
                       </span>
                       {rev.verified_participant && (
                         <span className="rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold">
@@ -295,7 +295,7 @@ export default function CommunitySection({
                 <div key={comment.id} className="rounded-xl border border-slate-200 bg-white p-3 space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-semibold text-slate-900">
-                      {comment.organization_name || comment.user_email?.split("@")[0] || "User"}
+                      {comment.organization_name || "User"}
                       {comment.account_type && comment.account_type !== "student" && (
                         <span className="ml-1.5 text-[10px] bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded font-medium">
                           {comment.account_type}

@@ -20,7 +20,6 @@ interface OpportunitiesPageProps {
     type?: string;
     deadline?: string;
     format?: string;
-    status?: string;
   }>;
 }
 
@@ -39,8 +38,7 @@ async function OpportunityResults({
     params.subject ||
     params.type ||
     params.deadline ||
-    params.format ||
-    params.status;
+    params.format;
 
   const [opportunities, savedIds, curated] = await Promise.all([
     getOpportunities({
@@ -49,7 +47,6 @@ async function OpportunityResults({
       type: params.type,
       deadline: params.deadline,
       format: params.format,
-      verificationStatus: params.status,
     }),
     getSavedOpportunityIds(),
     hasFilters ? Promise.resolve(null) : getCuratedOpportunitySections(),
@@ -81,7 +78,7 @@ async function OpportunityResults({
         emptyMessage={
           hasFilters
             ? "No opportunities match your filters. Try clearing some filters."
-            : "No opportunities yet. Run supabase/seed-opportunities.sql to add sample data."
+            : "No opportunities yet. Complete the database setup in supabase/README.md."
         }
       />
     </>

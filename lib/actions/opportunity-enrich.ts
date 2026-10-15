@@ -134,7 +134,7 @@ export async function enrichOpportunityWithAI(
 
   if (error) {
     return {
-      error: `Could not save enriched data: ${error.message}. Run supabase/migration-opportunity-ai-enrich-rpc.sql in Supabase SQL Editor.`,
+      error: `Could not save enriched data: ${error.message}. Complete the database setup described in supabase/README.md.`,
     };
   }
 

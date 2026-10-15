@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { OpportunityComment, OpportunityReview } from "@/lib/types";
+import type { OpportunityComment, OpportunityReview, AccountType } from "@/lib/types";
 
 export async function getOpportunityComments(
   opportunityId: string,
@@ -16,7 +16,6 @@ export async function getOpportunityComments(
       parent_id,
       created_at,
       profiles (
-        email,
         account_type,
         organization_name
       )
@@ -29,17 +28,19 @@ export async function getOpportunityComments(
     return [];
   }
 
-  return (data || []).map((row: any) => ({
-    id: row.id,
-    opportunity_id: row.opportunity_id,
-    user_id: row.user_id,
-    content: row.content,
-    parent_id: row.parent_id,
-    created_at: row.created_at,
-    user_email: row.profiles?.email,
-    account_type: row.profiles?.account_type,
-    organization_name: row.profiles?.organization_name,
-  }));
+  return (data || []).map((row: Record<string, unknown>): OpportunityComment => {
+    const profiles = row.profiles as Record<string, unknown> | undefined;
+    return {
+      id: row.id as string,
+      opportunity_id: row.opportunity_id as string,
+      user_id: row.user_id as string,
+      content: row.content as string,
+      parent_id: row.parent_id as string | null,
+      created_at: row.created_at as string,
+      account_type: profiles?.account_type as AccountType | undefined,
+      organization_name: profiles?.organization_name as string | null | undefined,
+    };
+  });
 }
 
 export async function getOpportunityReviews(
@@ -60,7 +61,8 @@ export async function getOpportunityReviews(
       verified_participant,
       created_at,
       profiles (
-        email
+        account_type,
+        organization_name
       )
     `)
     .eq("opportunity_id", opportunityId)
@@ -71,16 +73,20 @@ export async function getOpportunityReviews(
     return [];
   }
 
-  return (data || []).map((row: any) => ({
-    id: row.id,
-    opportunity_id: row.opportunity_id,
-    user_id: row.user_id,
-    difficulty_rating: row.difficulty_rating,
-    prep_tips: row.prep_tips,
-    common_mistakes: row.common_mistakes,
-    skills_developed: row.skills_developed,
-    verified_participant: row.verified_participant,
-    created_at: row.created_at,
-    user_email: row.profiles?.email,
-  }));
+  return (data || []).map((row: Record<string, unknown>): OpportunityReview => {
+    const profiles = row.profiles as Record<string, unknown> | undefined;
+    return {
+      id: row.id as string,
+      opportunity_id: row.opportunity_id as string,
+      user_id: row.user_id as string,
+      difficulty_rating: row.difficulty_rating as "Beginner" | "Intermediate" | "Advanced" | "Challenging" | null,
+      prep_tips: row.prep_tips as string,
+      common_mistakes: row.common_mistakes as string | null,
+      skills_developed: row.skills_developed as string | null,
+      verified_participant: row.verified_participant as boolean,
+      created_at: row.created_at as string,
+      account_type: profiles?.account_type as AccountType | undefined,
+      organization_name: profiles?.organization_name as string | null | undefined,
+    };
+  });
 }

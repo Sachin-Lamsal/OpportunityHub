@@ -30,9 +30,11 @@ const baseClasses =
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
-  href?: undefined;
+  href?: string | undefined;
   children: ReactNode;
 }
+
+type ButtonPropsUnion = ButtonProps | LinkButtonProps;
 
 interface LinkButtonProps {
   href: string;
@@ -50,7 +52,7 @@ export default function Button({
   children,
   href,
   ...props
-}: ButtonProps | LinkButtonProps) {
+}: ButtonPropsUnion) {
   const classes = cn(
     baseClasses,
     variantClasses[variant ?? "primary"],

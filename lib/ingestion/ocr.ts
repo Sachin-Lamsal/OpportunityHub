@@ -1,4 +1,6 @@
 import { getGeminiApiKey } from "@/lib/ai/gemini";
+import { GEMINI_TIMEOUT_MS, runMeteredAi } from "@/lib/ai/metered-call";
+import { safeFetch } from "@/lib/security/safe-fetch";
 
 export interface OcrResult {
   text: string;
@@ -17,10 +19,13 @@ export async function extractTextFromImage({
   imageUrl,
   imageBase64,
   mimeType = "image/jpeg",
+  userId,
 }: {
   imageUrl?: string;
   imageBase64?: string;
   mimeType?: string;
+  /** Authenticated caller. Required: unmetered AI calls are not permitted. */
+  userId: string;
 }): Promise<OcrResult> {
   const apiKey = getGeminiApiKey();
 
@@ -38,26 +43,27 @@ export async function extractTextFromImage({
   // If image URL is provided, download image and convert to Base64
   if (!finalBase64 && imageUrl) {
     try {
-      const res = await fetch(imageUrl, {
+      const res = await safeFetch(imageUrl, {
+        timeoutMs: GEMINI_TIMEOUT_MS,
+        maxBytes: 8 * 1024 * 1024,
         headers: {
           "User-Agent": "OpportunityHub-OCR/1.0",
         },
       });
 
-      if (!res.ok) {
+      if (res.status >= 400) {
         return {
           text: "",
-          error: `Failed to download image from URL (${res.status} ${res.statusText})`,
+          error: `Failed to download image from URL (HTTP ${res.status})`,
         };
       }
 
-      const contentType = res.headers.get("content-type");
+      const contentType = res.headers["content-type"];
       if (contentType && contentType.startsWith("image/")) {
         finalMimeType = contentType.split(";")[0].trim();
       }
 
-      const arrayBuffer = await res.arrayBuffer();
-      finalBase64 = Buffer.from(arrayBuffer).toString("base64");
+      finalBase64 = res.bodyBuffer.toString("base64");
     } catch (err) {
       return {
         text: "",
@@ -100,59 +106,82 @@ Extract and transcribe all text and key details verbatim:
 
 Output the extracted text clearly and completely with preserved section headings.`;
 
-  const models = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.0-flash-lite"];
+  const models = [
+    "gemini-flash-latest",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
+    "gemini-flash-lite-latest",
+    "gemini-3.5-flash-lite",
+  ];
 
-  for (const model of models) {
-    try {
-      const url = `${GEMINI_API_BASE}/models/${model}:generateContent?key=${apiKey}`;
-      const payload = {
-        contents: [
-          {
-            parts: [
-              {
-                inlineData: {
-                  mimeType: finalMimeType,
-                  data: finalBase64,
+  // Metered: reserve a credit before calling Gemini, refund on failure.
+  const metered = await runMeteredAi(userId, async (): Promise<OcrResult | null> => {
+    for (const model of models) {
+      try {
+        const url = `${GEMINI_API_BASE}/models/${model}:generateContent?key=${apiKey}`;
+        const payload = {
+          contents: [
+            {
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: finalMimeType,
+                    data: finalBase64,
+                  },
                 },
-              },
-              {
-                text: prompt,
-              },
-            ],
+                {
+                  text: prompt,
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.1,
+            maxOutputTokens: 2048,
           },
-        ],
-        generationConfig: {
-          temperature: 0.1,
-          maxOutputTokens: 2048,
-        },
-      };
-
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const errText = await res.text();
-        console.warn(`[OCR ${model} error]`, res.status, errText);
-        continue; // Try next model
-      }
-
-      const json = await res.json();
-      const extractedText =
-        json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
-
-      if (extractedText) {
-        return {
-          text: extractedText,
-          sourceImageUrl: imageUrl,
-          confidence: "high",
         };
+
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
+        });
+
+        if (!res.ok) {
+          const errText = res.body;
+          console.warn(`[OCR ${model} error]`, res.status, errText);
+          continue; // Try next model
+        }
+
+        const json = await res.json();
+        const extractedText =
+          json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+
+        if (extractedText) {
+          return {
+            text: extractedText,
+            sourceImageUrl: imageUrl,
+            confidence: "high",
+          };
+        }
+      } catch (err) {
+        console.warn(`[OCR ${model} fetch exception]`, err);
       }
-    } catch (err) {
-      console.warn(`[OCR ${model} fetch exception]`, err);
+
     }
+    return null;
+  });
+
+  if (!metered.ok) {
+    console.warn(`[OCR] request refused: ${metered.reason}`);
+    return { text: "", error: metered.reason === "quota"
+      ? metered.message
+      : `OCR failed: ${metered.message}` };
+  }
+
+  if (metered.value) {
+    return metered.value;
   }
 
   return {

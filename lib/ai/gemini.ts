@@ -4,10 +4,11 @@ const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
 /** Fallback when no user tier is specified (e.g. test script). */
 const DEFAULT_MODELS = [
-  "gemini-2.0-flash-lite",
-  "gemini-2.5-flash-lite",
-  "gemini-2.0-flash",
-  "gemini-2.5-flash",
+  "gemini-flash-latest",
+  "gemini-3.6-flash",
+  "gemini-3.5-flash",
+  "gemini-flash-lite-latest",
+  "gemini-3.5-flash-lite",
 ] as const;
 
 export function getGeminiApiKey(): string | null {
@@ -70,41 +71,58 @@ async function callGenerateContent(
 ): Promise<GenerateTextResult> {
   const url = `${GEMINI_API_BASE}/models/${model}:generateContent`;
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-goog-api-key": apiKey,
-    },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: config.temperature,
-        maxOutputTokens: config.maxOutputTokens,
+  // SECURITY: Add timeout to prevent hanging requests
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
       },
-    }),
-    cache: "no-store",
-  });
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: config.temperature,
+          maxOutputTokens: config.maxOutputTokens,
+        },
+      }),
+      cache: "no-store",
+      signal: controller.signal,
+    });
 
-  const body = (await response.json()) as GeminiGenerateResponse & GeminiErrorBody;
+    clearTimeout(timeoutId);
+    const body = (await response.json()) as GeminiGenerateResponse & GeminiErrorBody;
 
-  if (!response.ok) {
-    const message =
-      body.error?.message ??
-      `Gemini API returned ${response.status} for model ${model}`;
-    return { text: null, error: friendlyGeminiError(message) };
+    if (!response.ok) {
+      const message =
+        body.error?.message ??
+        `Gemini API returned ${response.status} for model ${model}`;
+      return { text: null, error: friendlyGeminiError(message) };
+    }
+
+    const text = body.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
+
+    if (!text) {
+      return {
+        text: null,
+        error: `Gemini returned an empty response for model ${model}`,
+      };
+    }
+
+    return { text };
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === "AbortError") {
+      return {
+        text: null,
+        error: "Gemini API request timed out after 15 seconds. Please try again.",
+      };
+    }
+    throw error;
   }
-
-  const text = body.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
-
-  if (!text) {
-    return {
-      text: null,
-      error: `Gemini returned an empty response for model ${model}`,
-    };
-  }
-
-  return { text };
 }
 
 export async function generateText(prompt: string): Promise<string | null> {

@@ -68,7 +68,7 @@ export async function createSchoolInvite(
 
   if (error) {
     return {
-      error: `${error.message} — run supabase/migrate-school-invites-and-settings.sql.`,
+      error: `${error.message} — complete the database setup described in supabase/README.md.`,
     };
   }
 

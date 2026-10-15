@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendDeadlineReminderEmail } from "@/lib/email/brevo";
 
@@ -10,22 +9,33 @@ export const dynamic = "force-dynamic";
  * Can be scheduled (e.g. daily at 08:00 UTC) via Vercel Cron or custom scheduler.
  */
 export async function GET(request: Request) {
-  // Optional security token check if CRON_SECRET is set
-  const authHeader = request.headers.get("authorization");
+  // SECURITY: Cron endpoint MUST require authentication
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+
+  if (!cronSecret) {
+    console.error("[CRON/REMINDERS] SECURITY ERROR: CRON_SECRET not configured. Endpoint is open to public abuse.");
+    return NextResponse.json(
+      { error: "Cron endpoint not properly configured. Set CRON_SECRET environment variable." },
+      { status: 503 }
+    );
+  }
+
+  const authHeader = request.headers.get("authorization");
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Use service role admin client to bypass RLS across users, or fallback to server client
+  // SECURITY: Use service role admin client to bypass RLS - require it, don't fallback
   const adminClient = createAdminClient();
-  const supabase = adminClient || (await createClient());
-
   if (!adminClient) {
-    console.warn(
-      "[Reminders Cron] Warning: SUPABASE_SERVICE_ROLE_KEY is not set. Querying with anonymous client may return 0 records due to Row Level Security.",
+    console.error("[CRON/REMINDERS] SECURITY ERROR: SUPABASE_SERVICE_ROLE_KEY not configured. Cannot bypass RLS safely.");
+    return NextResponse.json(
+      { error: "Cron job misconfigured: missing SUPABASE_SERVICE_ROLE_KEY" },
+      { status: 503 }
     );
   }
+  const supabase = adminClient;
+
 
   // Find saved opportunities with upcoming deadlines where student opted in
   const today = new Date();
@@ -73,7 +83,13 @@ export async function GET(request: Request) {
       continue;
     }
 
+    // SECURITY: Validate deadline is a valid date
     const deadlineDate = new Date(opp.deadline);
+    if (isNaN(deadlineDate.getTime())) {
+      console.warn(`[Reminders] Skipping opportunity with invalid deadline: ${opp.deadline}`);
+      continue;
+    }
+
     const diffTime = deadlineDate.getTime() - today.getTime();
     const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 

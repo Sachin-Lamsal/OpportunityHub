@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useActionState } from "react";
-import Link from "next/link";
 import { createActivity, type ActivityState } from "@/lib/actions/activities";
 import { useActionRedirect } from "@/components/auth/useActionRedirect";
 import { ACTIVITY_CATEGORIES } from "@/lib/constants";

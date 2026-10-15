@@ -46,7 +46,8 @@ async function getPopularOpportunities(limit: number): Promise<Opportunity[]> {
   const { data, error } = await supabase
     .from("opportunities")
     .select("*")
-    .in("id", topIds);
+    .in("id", topIds)
+    .eq("lifecycle_status", "published");
 
   if (error || !data?.length) {
     return getOpportunities({ verificationStatus: "verified", limit });
@@ -66,6 +67,7 @@ async function getFeaturedOpportunities(limit: number): Promise<Opportunity[]> {
     .from("opportunities")
     .select("*")
     .contains("tags", ["featured"])
+    .eq("lifecycle_status", "published")
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -76,6 +78,7 @@ async function getFeaturedOpportunities(limit: number): Promise<Opportunity[]> {
   const { data: verified, error: verifiedError } = await supabase
     .from("opportunities")
     .select("*")
+    .eq("lifecycle_status", "published")
     .eq("is_verified", true)
     .or(`deadline.is.null,deadline.gte.${today}`)
     .not("ai_summary", "is", null)

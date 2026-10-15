@@ -300,7 +300,7 @@ export default function OnboardingWizardClient({
                   <select
                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
                     value={customCategory}
-                    onChange={(e) => setCustomCategory(e.target.value as any)}
+                    onChange={(e) => setCustomCategory(e.target.value as typeof ACTIVITY_CATEGORIES[number])}
                   >
                     {ACTIVITY_CATEGORIES.map((cat) => (
                       <option key={cat} value={cat}>

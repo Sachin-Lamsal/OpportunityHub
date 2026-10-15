@@ -54,8 +54,24 @@ export async function signup(
     return { error: "Please fill in all required fields." };
   }
 
-  if (password.length < 6) {
-    return { error: "Password must be at least 6 characters." };
+  // SECURITY: Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return { error: "Please enter a valid email address." };
+  }
+
+  // SECURITY: Strong password policy (OWASP recommendations)
+  if (password.length < 8) {
+    return { error: "Password must be at least 8 characters." };
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { error: "Password must contain at least one uppercase letter." };
+  }
+  if (!/[a-z]/.test(password)) {
+    return { error: "Password must contain at least one lowercase letter." };
+  }
+  if (!/[0-9]/.test(password)) {
+    return { error: "Password must contain at least one number." };
   }
 
   if (!hasSupabaseEnv()) {
@@ -136,19 +152,11 @@ export async function signup(
     }
   }
 
-  // Check if an account with this email already exists
-  try {
-    const { data: emailTaken } = await supabase.rpc("check_email_exists", {
-      lookup_email: email,
-    });
-    if (emailTaken === true) {
-      return {
-        error: "An account with this email already exists. Please log in instead.",
-      };
-    }
-  } catch {
-    // If RPC is not created yet, fall through to Supabase auth check
-  }
+  // NOTE: We deliberately do NOT pre-check whether the email is already
+  // registered. The previous `check_email_exists` RPC is SECURITY DEFINER and
+  // was granted to `anon`, which let an unauthenticated caller enumerate every
+  // registered address ("An account with this email already exists"). The
+  // generic message below keeps signup from confirming or denying an address.
 
   let data;
   let error;
@@ -178,12 +186,15 @@ export async function signup(
 
   if (error) {
     const rawMsg = (error.message || "").trim();
+    // Do not confirm or deny that an address is registered: distinguishing
+    // this error from any other would reintroduce account enumeration.
     if (
       rawMsg.toLowerCase().includes("already registered") ||
       rawMsg.toLowerCase().includes("user already exists")
     ) {
       return {
-        error: "An account with this email already exists. Please log in instead.",
+        error:
+          "If that address can be registered, a confirmation link is on its way. If you already have an account, try logging in instead.",
       };
     }
 
@@ -207,10 +218,13 @@ export async function signup(
   }
 
   // Supabase returns an empty identities array when user enumeration protection is on
-  // and the email is already registered.
+  // and the email is already registered. We must NOT surface this as a distinct
+  // outcome, otherwise the signup form becomes an account-enumeration oracle.
+  // Returning the same neutral message as a successful send keeps it private.
   if (Array.isArray(data.user.identities) && data.user.identities.length === 0) {
     return {
-      error: "An account with this email already exists. Please log in instead.",
+      success:
+        "If that address can be registered, a confirmation link is on its way. Check your inbox, or try logging in if you already have an account.",
     };
   }
 
@@ -235,7 +249,7 @@ export async function signup(
 
     if (profileError) {
       return {
-        error: `Account created but profile save failed: ${profileError.message}. Run supabase/migrate-account-types.sql in the Supabase SQL Editor.`,
+        error: `Account created but profile save failed: ${profileError.message}. Complete the database setup described in supabase/README.md.`,
       };
     }
 
@@ -318,7 +332,7 @@ export async function login(
     return { error: "Could not verify your session. Please try again." };
   }
 
-  let { data: profile } = await supabase
+  const { data: profile } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
@@ -393,6 +407,131 @@ export async function logout(formData?: FormData) {
   redirect(accountType ? loginPathFor(accountType) : "/login");
 }
 
+/**
+ * Builds an absolute, trusted origin for auth redirects. Never derives the
+ * host from the incoming request, which would allow Host-header injection.
+ */
+function authRedirectOrigin(): string {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (configured) return configured.replace(/\/+$/, "");
+
+  const vercelUrl = process.env.VERCEL_URL?.trim();
+  if (vercelUrl) return `https://${vercelUrl.replace(/\/+$/, "")}`;
+
+  return "http://localhost:3000";
+}
+
+/**
+ * Sends a Supabase password-recovery email.
+ * Always reports success regardless of whether the address exists, so the form
+ * cannot be used to enumerate registered accounts.
+ */
+export async function requestPasswordReset(
+  _prevState: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  const email = (formData.get("email") as string)?.trim().toLowerCase();
+
+  if (!email) {
+    return { error: "Please enter your email address." };
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return { error: "Please enter a valid email address." };
+  }
+
+  if (!hasSupabaseEnv()) {
+    return {
+      error:
+        "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local.",
+    };
+  }
+
+  const supabase = await createClient();
+  const redirectTo = `${authRedirectOrigin()}/auth/callback?next=/reset-password`;
+
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    });
+
+    if (error) {
+      console.error("Password reset request failed:", error.message);
+      return {
+        error:
+          "We could not send the reset email right now. Please try again later.",
+      };
+    }
+  } catch {
+    return {
+      error:
+        "Could not reach Supabase. Check NEXT_PUBLIC_SUPABASE_URL in .env.local and your network connection.",
+    };
+  }
+
+  return {
+    success:
+      "If an account exists for that address, a password reset link is on its way.",
+  };
+}
+
+/**
+ * Completes a password reset. The user must arrive from Supabase's recovery
+ * link, which establishes a session; otherwise this returns an error.
+ */
+export async function updatePassword(
+  _prevState: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  const password = formData.get("password") as string;
+  const confirmPassword = formData.get("confirm_password") as string;
+
+  if (!password || !confirmPassword) {
+    return { error: "Please fill in both password fields." };
+  }
+
+  if (password !== confirmPassword) {
+    return { error: "Passwords do not match." };
+  }
+
+  if (password.length < 8) {
+    return { error: "Password must be at least 8 characters long." };
+  }
+
+  if (!hasSupabaseEnv()) {
+    return {
+      error:
+        "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local.",
+    };
+  }
+
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      error:
+        "This reset link is invalid or has expired. Please request a new reset email.",
+    };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) {
+    console.error("Password update failed:", error.message);
+    return {
+      error:
+        "Could not update your password. The reset link may have expired — please request a new one.",
+    };
+  }
+
+  return { success: "Your password has been updated. You can now log in." };
+}
+
 export async function updateProfile(
   _prevState: AuthState,
   formData: FormData,
@@ -464,14 +603,15 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
     return null;
   }
 
-  let { data: profile, error } = await supabase
+  const { data: profileData, error: profileError } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
     .maybeSingle();
+  let profile = profileData;
 
-  if (error) {
-    console.error("Failed to load profile:", error.message);
+  if (profileError) {
+    console.error("Failed to load profile:", profileError.message);
     return null;
   }
 

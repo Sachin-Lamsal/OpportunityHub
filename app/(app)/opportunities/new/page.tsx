@@ -1,18 +1,36 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import OpportunityForm from "@/components/opportunities/OpportunityForm";
 import { getProfile } from "@/lib/actions/auth";
-import { canManageOpportunities } from "@/lib/auth/account";
+import { UUID_RE, canManageOpportunities } from "@/lib/auth/account";
+import { getOpportunityById } from "@/lib/queries/opportunities";
+import type { Opportunity } from "@/lib/types";
 
 export const metadata = {
   title: "Add opportunity",
 };
 
-export default async function NewOpportunityPage() {
+interface NewOpportunityPageProps {
+  searchParams: Promise<{ from?: string }>;
+}
+
+export default async function NewOpportunityPage({
+  searchParams,
+}: NewOpportunityPageProps) {
   const profile = await getProfile();
 
   if (!profile || !canManageOpportunities(profile.account_type)) {
     redirect("/login");
+  }
+
+  const { from } = await searchParams;
+  let copyFrom: Opportunity | undefined;
+
+  if (from) {
+    if (!UUID_RE.test(from)) notFound();
+    const source = await getOpportunityById(from);
+    if (!source || source.created_by !== profile.id) notFound();
+    copyFrom = source;
   }
 
   return (
@@ -34,7 +52,7 @@ export default async function NewOpportunityPage() {
         </Link>
       </div>
 
-      <OpportunityForm />
+      <OpportunityForm copyFrom={copyFrom} />
     </div>
   );
 }
