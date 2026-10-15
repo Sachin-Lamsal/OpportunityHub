@@ -78,7 +78,7 @@ export async function getOrCreateUsageRow(userId: string): Promise<UsageRow> {
 
   if (selectError) {
     throw new Error(
-      `Could not load AI usage. Run supabase/migrate-ai-usage.sql — ${selectError.message}`,
+      `Could not load AI usage. Complete the database setup described in supabase/README.md — ${selectError.message}`,
     );
   }
 
@@ -91,7 +91,7 @@ export async function getOrCreateUsageRow(userId: string): Promise<UsageRow> {
 
     if (insertError || !created) {
       throw new Error(
-        `Could not create AI usage row. Run supabase/migrate-ai-usage.sql — ${insertError?.message}`,
+        `Could not create AI usage row. Complete the database setup described in supabase/README.md — ${insertError?.message}`,
       );
     }
 

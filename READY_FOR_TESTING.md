@@ -11,7 +11,7 @@
 ### Code Implementation (8 Files)
 ```
 ✅ lib/types/discovery.ts                      (3.3 KB) - 7 TypeScript interfaces
-✅ lib/actions/discovery.ts                    (12 KB)  - 6 server actions  
+✅ lib/actions/discovery.ts                    (12 KB)  - 6 server actions
 ✅ lib/queries/discovery.ts                    (2.6 KB) - 4 query functions
 ✅ app/admin/layout.tsx                        (1.2 KB) - Protected admin layout
 ✅ app/admin/dashboard/page.tsx                (3.5 KB) - Admin overview
@@ -160,11 +160,11 @@ INSERT INTO verification_evidence (
    ```sql
    SELECT * FROM discovery_candidates WHERE id = 'CANDIDATE_ID';
    -- status should be 'approved'
-   
-   SELECT * FROM opportunities WHERE source_type = 'official' 
+
+   SELECT * FROM opportunities WHERE source_type = 'official'
    ORDER BY created_at DESC LIMIT 1;
    -- Should see new opportunity
-   
+
    SELECT * FROM audit_events ORDER BY created_at DESC LIMIT 5;
    -- Should see 'approve' event
    ```

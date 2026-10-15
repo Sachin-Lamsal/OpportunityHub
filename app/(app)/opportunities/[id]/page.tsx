@@ -13,7 +13,7 @@ import Button from "@/components/ui/Button";
 import { getProfile } from "@/lib/actions/auth";
 import { sanitizeRegistrationUrl } from "@/lib/utils/url";
 import VerificationBadge from "@/components/opportunities/VerificationBadge";
-import VerifyOpportunityButton from "@/components/opportunities/VerifyOpportunityButton";
+import OpportunityLifecycleBadge from "@/components/opportunities/OpportunityLifecycleBadge";
 import CommunitySection from "@/components/community/CommunitySection";
 import OpportunityEditionsPanel from "@/components/opportunities/OpportunityEditionsPanel";
 import {
@@ -103,6 +103,7 @@ export default async function OpportunityDetailPage({
   const safeRegistrationLink = sanitizeRegistrationUrl(
     opportunity.registration_link,
   );
+  const safeSourceUrl = sanitizeRegistrationUrl(opportunity.source_url);
 
   const detailRows = [
     { label: "Organizer", value: opportunity.organizer },
@@ -172,10 +173,10 @@ export default async function OpportunityDetailPage({
               <p className="mt-1 text-xs text-amber-900/90 leading-relaxed">
                 This opportunity was automatically extracted from the web. Dates, deadlines, eligibility criteria, or fees may have changed. Always verify details on the organizer&apos;s official website before applying.
               </p>
-              {opportunity.source_url && (
+              {safeSourceUrl && (
                 <div className="mt-2.5">
                   <a
-                    href={opportunity.source_url}
+                    href={safeSourceUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-xs font-semibold text-amber-950 underline hover:text-amber-800"
@@ -192,15 +193,19 @@ export default async function OpportunityDetailPage({
         </div>
       )}
 
-      {isCreator && !opportunity.is_verified && (
+      {isCreator && opportunity.lifecycle_status !== "published" && (
         <div className="mb-6 rounded-2xl border border-indigo-200 bg-indigo-50/80 p-4 flex flex-wrap items-center justify-between gap-3 text-sm">
           <div>
-            <p className="font-semibold text-indigo-950">Review your listing</p>
+            <p className="font-semibold text-indigo-950">Listing status</p>
             <p className="text-xs text-indigo-700 mt-0.5">
-              This ingested listing is unverified. Approve it when details match the official source, or reject if it is incorrect.
+              {opportunity.lifecycle_status === "pending_review"
+                ? "An administrator is reviewing this listing. It will become public after approval."
+                : opportunity.lifecycle_status === "rejected"
+                  ? "Update the details using the reviewer note, then submit the listing for review again."
+                  : "This listing is private until you submit it for review and an administrator approves it."}
             </p>
           </div>
-          <VerifyOpportunityButton opportunityId={opportunity.id} />
+          <OpportunityLifecycleBadge status={opportunity.lifecycle_status} />
         </div>
       )}
 
@@ -241,6 +246,7 @@ export default async function OpportunityDetailPage({
       />
 
       <div className="flex flex-wrap items-center gap-2 mb-6">
+        {isCreator ? <OpportunityLifecycleBadge status={opportunity.lifecycle_status} /> : null}
         <VerificationBadge
           isVerified={opportunity.is_verified}
           status={opportunity.verification_status}

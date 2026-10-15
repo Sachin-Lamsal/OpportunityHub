@@ -51,6 +51,7 @@ export async function GET(request: Request) {
   const { data: opportunities, error: oppError } = await adminClient
     .from("opportunities")
     .select("id, title, organizer, deadline, type")
+    .eq("lifecycle_status", "published")
     .eq("is_verified", true)
     .order("created_at", { ascending: false })
     .limit(8);

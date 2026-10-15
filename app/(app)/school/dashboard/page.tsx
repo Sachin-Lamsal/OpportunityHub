@@ -5,7 +5,10 @@ import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { getProfile } from "@/lib/actions/auth";
 import { getLinkedStudentsForSchool } from "@/lib/queries/school";
-import { getOpportunitiesCreatedByUser } from "@/lib/queries/opportunities";
+import {
+  getOpportunitiesCreatedByUser,
+  getPublisherOpportunityStats,
+} from "@/lib/queries/opportunities";
 import { redirect } from "next/navigation";
 
 export const metadata = {
@@ -19,9 +22,10 @@ export default async function SchoolDashboardPage() {
     redirect("/login/school");
   }
 
-  const [students, published] = await Promise.all([
+  const [students, published, opportunityStats] = await Promise.all([
     getLinkedStudentsForSchool(),
     getOpportunitiesCreatedByUser(profile.id, 5),
+    getPublisherOpportunityStats(profile.id),
   ]);
 
   const activeStudents = students.filter((s) => s.activity_count > 0).length;
@@ -71,6 +75,25 @@ export default async function SchoolDashboardPage() {
             <p className="mt-2 text-xs text-slate-600">
               Based on activities logged in OpportunityHub.
             </p>
+          </Card>
+        </section>
+
+        <section className="grid gap-4 sm:grid-cols-4">
+          <Card>
+            <p className="text-sm text-slate-500">Drafts</p>
+            <p className="mt-1 text-3xl font-bold text-slate-900">{opportunityStats.draft}</p>
+          </Card>
+          <Card>
+            <p className="text-sm text-slate-500">Awaiting review</p>
+            <p className="mt-1 text-3xl font-bold text-amber-700">{opportunityStats.pendingReview}</p>
+          </Card>
+          <Card>
+            <p className="text-sm text-slate-500">Published</p>
+            <p className="mt-1 text-3xl font-bold text-emerald-700">{opportunityStats.published}</p>
+          </Card>
+          <Card>
+            <p className="text-sm text-slate-500">Needs changes</p>
+            <p className="mt-1 text-3xl font-bold text-rose-700">{opportunityStats.needsAttention}</p>
           </Card>
         </section>
 

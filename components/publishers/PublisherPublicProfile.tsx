@@ -2,10 +2,10 @@ import Link from "next/link";
 import PageHeader from "@/components/layout/PageHeader";
 import OpportunityList from "@/components/opportunities/OpportunityList";
 import FollowPublisherButton from "@/components/publishers/FollowPublisherButton";
-import VerificationBadge from "@/components/opportunities/VerificationBadge";
 import { Card } from "@/components/ui/Card";
 import type { Opportunity } from "@/lib/types";
 import type { PublicPublisherProfile } from "@/lib/queries/publishers";
+import { sanitizeRegistrationUrl } from "@/lib/utils/url";
 
 interface PublisherPublicProfileProps {
   profile: PublicPublisherProfile;
@@ -27,7 +27,19 @@ export default function PublisherPublicProfileView({
     profile.organization_name ||
     (isSchool ? "School" : "Organization");
 
-  const verifiedCount = opportunities.filter((o) => o.is_verified).length;
+  const websiteUrl = sanitizeRegistrationUrl(profile.website_url);
+  const socialLinks = Object.entries(profile.social_links ?? {}).filter(
+    ([, value]) => Boolean(sanitizeRegistrationUrl(value)),
+  );
+  const currentOpportunities = opportunities.filter(
+    (opportunity) => opportunity.lifecycle_status === "published",
+  );
+  const previousOpportunities = opportunities.filter(
+    (opportunity) =>
+      opportunity.lifecycle_status === "expired" ||
+      opportunity.lifecycle_status === "archived",
+  );
+  const verification = profile.publisher_verification_status ?? "unverified";
 
   return (
     <>
@@ -67,9 +79,23 @@ export default function PublisherPublicProfileView({
         >
           {isSchool ? "School" : "Organization"}
         </span>
-        {verifiedCount > 0 && (
-          <VerificationBadge isVerified={true} status="verified" />
-        )}
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            verification === "verified"
+              ? "bg-emerald-50 text-emerald-800"
+              : verification === "pending"
+                ? "bg-amber-50 text-amber-800"
+                : verification === "rejected"
+                  ? "bg-rose-50 text-rose-800"
+                  : "bg-slate-100 text-slate-700"
+          }`}
+        >
+          {verification === "verified"
+            ? "Publisher verified"
+            : verification === "pending"
+              ? "Publisher verification pending"
+              : "Publisher not verified"}
+        </span>
         <span className="text-sm text-slate-600">
           {followerCount} follower{followerCount === 1 ? "" : "s"}
         </span>
@@ -80,28 +106,67 @@ export default function PublisherPublicProfileView({
         )}
       </div>
 
-      {profile.organization_description && (
+      {(profile.organization_description || profile.contact_info || websiteUrl || socialLinks.length > 0) && (
         <Card className="mb-8">
           <h2 className="text-lg font-semibold text-slate-900">About</h2>
-          <p className="mt-2 text-sm leading-relaxed text-slate-600 whitespace-pre-wrap">
-            {profile.organization_description}
-          </p>
+          {profile.organization_description ? (
+            <p className="mt-2 text-sm leading-relaxed text-slate-600 whitespace-pre-wrap">
+              {profile.organization_description}
+            </p>
+          ) : null}
           {profile.contact_info && (
             <p className="mt-3 text-sm text-slate-500">
               Contact: {profile.contact_info}
             </p>
           )}
+          {websiteUrl || socialLinks.length > 0 ? (
+            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+              {websiteUrl ? (
+                <a
+                  href={websiteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-indigo-600 hover:text-indigo-700"
+                >
+                  Official website ↗
+                </a>
+              ) : null}
+              {socialLinks.map(([name, url]) => {
+                const safeUrl = sanitizeRegistrationUrl(url);
+                if (!safeUrl) return null;
+                return (
+                  <a
+                    key={name}
+                    href={safeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-indigo-600 hover:text-indigo-700"
+                  >
+                    {name} ↗
+                  </a>
+                );
+              })}
+            </div>
+          ) : null}
         </Card>
       )}
 
-      <h2 className="text-xl font-bold text-slate-900 mb-4">
-        {opportunities.length > 0 ? "Active & past listings" : "Listings"}
-      </h2>
-      <OpportunityList
-        opportunities={opportunities}
-        savedIds={new Set()}
-        emptyMessage="This publisher has not posted any opportunities yet."
-      />
+      <div className="space-y-8">
+        <section>
+          <h2 className="mb-4 text-xl font-bold text-slate-900">Current opportunities</h2>
+          <OpportunityList
+            opportunities={currentOpportunities}
+            savedIds={new Set()}
+            emptyMessage="This publisher has no current opportunities."
+          />
+        </section>
+        {previousOpportunities.length > 0 ? (
+          <section>
+            <h2 className="mb-4 text-xl font-bold text-slate-900">Previous opportunities</h2>
+            <OpportunityList opportunities={previousOpportunities} savedIds={new Set()} />
+          </section>
+        ) : null}
+      </div>
     </>
   );
 }

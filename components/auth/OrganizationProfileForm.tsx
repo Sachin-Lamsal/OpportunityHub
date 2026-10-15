@@ -12,6 +12,7 @@ import Input from "@/components/ui/Input";
 import Textarea from "@/components/ui/Textarea";
 import FormMessage from "@/components/ui/FormMessage";
 import { Card } from "@/components/ui/Card";
+import RequestPublisherVerificationButton from "@/components/publishers/RequestPublisherVerificationButton";
 
 const initialState: OrgProfileState = {};
 
@@ -69,12 +70,44 @@ export default function OrganizationProfileForm({
             placeholder="Email or phone for students to reach you"
           />
 
+          <Input
+            label="Official website (optional)"
+            name="website_url"
+            type="url"
+            defaultValue={profile.website_url ?? ""}
+            placeholder="https://your-organization.org"
+          />
+
           <Textarea
             label="About (optional)"
             name="organization_description"
             defaultValue={profile.organization_description ?? ""}
             placeholder="Short description of your school or organization"
           />
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Input
+              label="Facebook (optional)"
+              name="facebook_url"
+              type="url"
+              defaultValue={profile.social_links?.Facebook ?? ""}
+              placeholder="https://facebook.com/…"
+            />
+            <Input
+              label="Instagram (optional)"
+              name="instagram_url"
+              type="url"
+              defaultValue={profile.social_links?.Instagram ?? ""}
+              placeholder="https://instagram.com/…"
+            />
+            <Input
+              label="LinkedIn (optional)"
+              name="linkedin_url"
+              type="url"
+              defaultValue={profile.social_links?.LinkedIn ?? ""}
+              placeholder="https://linkedin.com/…"
+            />
+          </div>
 
           {isSchool ? (
             <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
@@ -100,6 +133,23 @@ export default function OrganizationProfileForm({
             {pending ? "Saving…" : "Save settings"}
           </Button>
         </form>
+      </Card>
+
+      <Card>
+        <h2 className="text-lg font-semibold text-slate-900">Profile verification</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Verification checks that this account represents the school or organization. Each opportunity is reviewed separately.
+        </p>
+        <div className="mt-4">
+          <RequestPublisherVerificationButton
+            status={profile.publisher_verification_status ?? "unverified"}
+          />
+          {profile.publisher_verification_note ? (
+            <p className="mt-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">
+              Review note: {profile.publisher_verification_note}
+            </p>
+          ) : null}
+        </div>
       </Card>
     </div>
   );

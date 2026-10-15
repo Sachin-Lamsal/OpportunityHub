@@ -226,7 +226,7 @@ this work.
 4. **Add password-reset redirect URLs** in Supabase → Authentication → URL Configuration:
    - `http://localhost:3000/auth/callback`
    - `https://<your-domain>/auth/callback`
-   
+
    Recovery links land on `/auth/callback?next=/reset-password`, so this must be allowed
    before the reset flow will work in production.
 5. Ensure `NEXT_PUBLIC_SITE_URL` is set in production — the recovery email redirect

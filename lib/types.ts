@@ -18,6 +18,11 @@ export interface Profile {
   school_name?: string | null;
   contact_info: string | null;
   organization_description: string | null;
+  website_url?: string | null;
+  social_links?: Record<string, string> | null;
+  publisher_verification_status?: PublisherVerificationStatus;
+  publisher_verified_at?: string | null;
+  publisher_verification_note?: string | null;
   students_invite_only: boolean;
   education_level: EducationLevel | null;
   dream_universities: string | null;
@@ -37,6 +42,19 @@ export interface Profile {
 
 export type VerificationStatus = "unverified" | "verified" | "rejected";
 export type SourceType = "official" | "scraped" | "ocr" | "manual";
+export type PublisherVerificationStatus =
+  | "unverified"
+  | "pending"
+  | "verified"
+  | "rejected";
+export type OpportunityLifecycleStatus =
+  | "draft"
+  | "pending_review"
+  | "published"
+  | "rejected"
+  | "expired"
+  | "cancelled"
+  | "archived";
 
 export interface Opportunity {
   id: string;
@@ -69,6 +87,10 @@ export interface Opportunity {
   edition_year?: string | null;
   is_verified?: boolean;
   verification_status?: VerificationStatus;
+  lifecycle_status?: OpportunityLifecycleStatus;
+  review_note?: string | null;
+  submitted_at?: string | null;
+  status_updated_at?: string | null;
   source_type?: SourceType;
   raw_source_text?: string | null;
   verified_at?: string | null;

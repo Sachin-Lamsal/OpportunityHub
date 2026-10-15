@@ -1,8 +1,12 @@
 import PageHeader from "@/components/layout/PageHeader";
 import PublisherOpportunityList from "@/components/opportunities/PublisherOpportunityList";
 import Button from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { getProfile } from "@/lib/actions/auth";
-import { getOpportunitiesCreatedByUser } from "@/lib/queries/opportunities";
+import {
+  getOpportunitiesCreatedByUser,
+  getPublisherOpportunityStats,
+} from "@/lib/queries/opportunities";
 import { redirect } from "next/navigation";
 
 export const metadata = {
@@ -16,7 +20,10 @@ export default async function OrgDashboardPage() {
     redirect("/login/organization");
   }
 
-  const published = await getOpportunitiesCreatedByUser(profile.id, 10);
+  const [published, stats] = await Promise.all([
+    getOpportunitiesCreatedByUser(profile.id, 10),
+    getPublisherOpportunityStats(profile.id),
+  ]);
 
   return (
     <>
@@ -24,6 +31,25 @@ export default async function OrgDashboardPage() {
         title={profile.organization_name ?? "Organization dashboard"}
         description="Publish and manage opportunities for students on OpportunityHub."
       />
+
+      <section className="mb-8 grid gap-4 sm:grid-cols-4">
+        <Card>
+          <p className="text-sm text-slate-500">Drafts</p>
+          <p className="mt-1 text-3xl font-bold text-slate-900">{stats.draft}</p>
+        </Card>
+        <Card>
+          <p className="text-sm text-slate-500">Awaiting review</p>
+          <p className="mt-1 text-3xl font-bold text-amber-700">{stats.pendingReview}</p>
+        </Card>
+        <Card>
+          <p className="text-sm text-slate-500">Published</p>
+          <p className="mt-1 text-3xl font-bold text-emerald-700">{stats.published}</p>
+        </Card>
+        <Card>
+          <p className="text-sm text-slate-500">Needs changes</p>
+          <p className="mt-1 text-3xl font-bold text-rose-700">{stats.needsAttention}</p>
+        </Card>
+      </section>
 
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">

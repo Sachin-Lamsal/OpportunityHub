@@ -27,6 +27,23 @@ function getDeadlineRange() {
   };
 }
 
+/**
+ * `review_note` is written by administrators and is intended for the owning
+ * publisher (it is rendered in the publisher's own listing screens). Public
+ * browse and detail queries select `*`, so without this the note would be
+ * serialised into every anonymous page payload. Strip it from public reads;
+ * owner and admin reads keep it.
+ */
+function withoutInternalNotes(rows: unknown[]): Opportunity[] {
+  return rows.map((row) => {
+    if (!row || typeof row !== "object") return row as Opportunity;
+    const { review_note: _note, ...rest } = row as Opportunity & {
+      review_note?: string | null;
+    };
+    return rest as Opportunity;
+  });
+}
+
 export async function getOpportunitiesCreatedByUser(
   userId: string,
   limit = 10,
@@ -45,7 +62,44 @@ export async function getOpportunitiesCreatedByUser(
     return [];
   }
 
+  // Owner view: keep review_note so the publisher can read admin feedback.
   return (data ?? []) as Opportunity[];
+}
+
+export interface PublisherOpportunityStats {
+  draft: number;
+  pendingReview: number;
+  published: number;
+  needsAttention: number;
+}
+
+export async function getPublisherOpportunityStats(
+  userId: string,
+): Promise<PublisherOpportunityStats> {
+  const supabase = await createClient();
+  const statuses = ["draft", "pending_review", "published", "rejected"] as const;
+
+  const results = await Promise.all(
+    statuses.map(async (lifecycleStatus) => {
+      const { count, error } = await supabase
+        .from("opportunities")
+        .select("id", { count: "exact", head: true })
+        .eq("created_by", userId)
+        .eq("lifecycle_status", lifecycleStatus);
+      return { lifecycleStatus, count: error ? 0 : (count ?? 0) };
+    }),
+  );
+
+  const counts = Object.fromEntries(
+    results.map(({ lifecycleStatus, count }) => [lifecycleStatus, count]),
+  ) as Record<(typeof statuses)[number], number>;
+
+  return {
+    draft: counts.draft,
+    pendingReview: counts.pending_review,
+    published: counts.published,
+    needsAttention: counts.rejected,
+  };
 }
 
 /**
@@ -65,6 +119,7 @@ export async function getOpportunities(
   let query = supabase
     .from("opportunities")
     .select("*")
+    .eq("lifecycle_status", "published")
     .order("created_at", { ascending: false });
 
   if (filters.subject) {
@@ -125,7 +180,7 @@ export async function getOpportunities(
     return [];
   }
 
-  return (data ?? []) as Opportunity[];
+  return withoutInternalNotes(data ?? []);
 }
 
 export async function getOpportunityById(id: string): Promise<Opportunity | null> {
@@ -144,7 +199,8 @@ export async function getOpportunityById(id: string): Promise<Opportunity | null
     return null;
   }
 
-  return data as Opportunity;
+  // Public detail view: admin review notes must not reach anonymous readers.
+  return withoutInternalNotes([data])[0] ?? null;
 }
 
 export async function getSavedOpportunityIds(): Promise<Set<string>> {

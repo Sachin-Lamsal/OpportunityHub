@@ -67,7 +67,7 @@ export default async function DashboardPage() {
             opportunities={latestOpportunities}
             savedIds={savedIds}
             compact
-            emptyMessage="No opportunities yet. Add sample data via supabase/seed-opportunities.sql."
+            emptyMessage="No opportunities yet. Complete the database setup in supabase/README.md."
             showViewAll
           />
         </section>

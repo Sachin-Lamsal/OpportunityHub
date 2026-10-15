@@ -27,9 +27,9 @@ Built for NEB, IGCSE, AS, and A-Level students preparing university portfolios.
 
 ### Schools and organizations
 
-- Publish opportunities manually (`/opportunities/new`) — listed as **verified** with `source_type: manual`
-- Ingest from a URL or poster (`/opportunities/ingest`) — saved as **unverified** until reviewed
-- Verify or reject ingested listings; public publisher profiles at `/school/[id]` and `/org/[id]`
+- Save opportunities as drafts or submit them for administrator review
+- Request publisher-profile verification; approved listings become public after review
+- Public publisher profiles are available at `/school/[id]` and `/org/[id]`
 - Schools: invite codes, linked student roster, view student activity summaries
 
 ### Account portals
@@ -50,14 +50,13 @@ cp .env.local.example .env.local
 
 1. Create a project at [supabase.com](https://supabase.com)
 2. Copy **Project URL** and **anon key** into `.env.local`
-3. In **SQL Editor**, run **`supabase/setup-all.sql`** once (recommended), *or*:
-   - `supabase/complete-schema.sql` (all tables)
-   - `supabase/migrate-opportunity-ai-fields.sql` (AI detail columns — if you already ran an older schema)
-   - `supabase/migration-opportunity-ai-enrich-rpc.sql` (student AI enrich saves — required for **Generate AI details** on strict RLS)
-   - `supabase/migrate-ai-usage.sql` (per-user AI credit tracking)
-   - `supabase/seed-opportunities.sql` (sample data)
+3. In **SQL Editor**, run these files one at a time, in this order:
+   - `supabase/setup-all.sql`
+   - `supabase/migration-discovery-verification-system.sql`
+   - `supabase/migration-security-hardening.sql`
+   - `supabase/migration-publisher-workflows.sql`
 
-   See `supabase/README.md` for the full incremental migration order.
+   Run `setup-all.sql` first. It creates the base schema and seed data. Then run the three migrations in the order listed above. See `supabase/README.md` for the complete setup process.
 4. **Authentication → Providers → Email** — turn off **Confirm email** for easier local testing
 
 ### 3. Run
@@ -126,7 +125,7 @@ Each logged-in user gets a **monthly talk budget** (default **10** via `STUDENT_
 - Credits reset on the 1st of each month (UTC).
 - Override with `AI_TIER_PREMIUM_LIMIT` and `AI_TIER_STANDARD_LIMIT`.
 
-Run `supabase/migrate-ai-usage.sql` in Supabase if credits are not tracking.
+If credits are not tracking, confirm that all four database setup files completed successfully.
 
 **Note:** URL/poster **ingestion** OCR and formatting call Gemini outside this quota.
 
@@ -223,8 +222,10 @@ lib/
   queries/          Supabase read helpers
   supabase/         Browser, server, middleware clients
 supabase/
-  setup-all.sql     Full database schema (run once)
-  seed-opportunities.sql  Sample opportunities
+  setup-all.sql                              Base schema and opportunity data
+  migration-discovery-verification-system.sql  Administrator and discovery system
+  migration-security-hardening.sql           Database privacy protections
+  migration-publisher-workflows.sql          Publisher and listing review workflow
 ```
 
 ## Scripts
@@ -255,7 +256,7 @@ See `.env.local.example` for all variables.
 | `opportunity_comments` / `opportunity_reviews` | Community on listing pages |
 | `organization_follows` | Follow school/org publishers |
 
-**Verification:** Ingested listings are `unverified`; manual publisher forms are `verified` with `source_type: manual`. See `migration-ingestion-and-verification.sql`.
+**Verification:** Publisher profile verification and opportunity verification are separate. Publishers save drafts or submit listings for review; an administrator publishes approved listings. See `migration-publisher-workflows.sql`.
 
 ## MVP limits
 
@@ -268,12 +269,12 @@ The app code is ready when `npm run build` passes. You still need to configure s
 ### 1. Supabase
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. **SQL Editor → Run** `supabase/setup-all.sql` once (recommended).
+2. **SQL Editor → Run** `supabase/setup-all.sql`, then in order run `migration-discovery-verification-system.sql`, `migration-security-hardening.sql`, and `migration-publisher-workflows.sql`.
 3. **Authentication → URL configuration:** set Site URL and add `https://<your-domain>/auth/callback` (and localhost for dev).
 4. **Authentication → Email:** disable **Confirm email** for local dev, or configure **SMTP** (e.g. Resend) for production.
 5. Copy **Project URL**, **anon key**, and (for crons) **service role key** into env.
 
-Incremental upgrades: see `supabase/README.md` (migrations 1–12).
+Use the four-file setup sequence in `supabase/README.md` for every installation.
 
 ### 2. Local environment
 
