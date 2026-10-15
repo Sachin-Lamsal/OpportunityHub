@@ -812,14 +812,17 @@ create table if not exists public.ai_user_usage (
 
 alter table public.ai_user_usage enable row level security;
 
+drop policy if exists "Users read own AI usage" on public.ai_user_usage;
 create policy "Users read own AI usage"
   on public.ai_user_usage for select
   using (auth.uid() = user_id);
 
+drop policy if exists "Users insert own AI usage" on public.ai_user_usage;
 create policy "Users insert own AI usage"
   on public.ai_user_usage for insert
   with check (auth.uid() = user_id);
 
+drop policy if exists "Users update own AI usage" on public.ai_user_usage;
 create policy "Users update own AI usage"
   on public.ai_user_usage for update
   using (auth.uid() = user_id);
