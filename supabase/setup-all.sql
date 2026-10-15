@@ -875,9 +875,8 @@ notify pgrst, 'reload schema';
 -- =============================================================================
 
 -- =============================================================================
--- OpportunityHub — INTEGRATED opportunities seed (parts 1 + 2 + 3 merged)
--- Run AFTER complete-schema.sql. This one file replaces seed-opportunities.sql
--- (part 1), part 2 and part 3, so run only this file.
+-- OpportunityHub — INTEGRATED opportunities seed
+-- This master setup file includes the schema and all opportunity data.
 --
 -- Safe to re-run and safe on a database that already ran parts 1-3: rows are
 -- upserted by title (existing rows are updated in place, so saved_opportunities
@@ -1906,8 +1905,8 @@ notify pgrst, 'reload schema';
 -- =============================================================================
 
 -- =============================================================================
--- OpportunityHub — seed-opportunities PART 3: OFFICIAL REGISTRATION LINKS
--- Run AFTER seed-opportunities.sql (part 1) AND seed-opportunities-part2.sql.
+-- OpportunityHub — OFFICIAL REGISTRATION LINKS & REVISED CLEANUP
+-- This section is part of the master setup file.
 -- Safe to re-run.
 --
 -- What this file does

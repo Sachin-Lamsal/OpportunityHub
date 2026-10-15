@@ -249,7 +249,7 @@ export async function signup(
 
     if (profileError) {
       return {
-        error: `Account created but profile save failed: ${profileError.message}. Run supabase/migrate-account-types.sql in the Supabase SQL Editor.`,
+        error: `Account created but profile save failed: ${profileError.message}. Complete the database setup described in supabase/README.md.`,
       };
     }
 

@@ -78,7 +78,7 @@ async function OpportunityResults({
         emptyMessage={
           hasFilters
             ? "No opportunities match your filters. Try clearing some filters."
-            : "No opportunities yet. Run supabase/seed-opportunities.sql to add sample data."
+            : "No opportunities yet. Complete the database setup in supabase/README.md."
         }
       />
     </>
