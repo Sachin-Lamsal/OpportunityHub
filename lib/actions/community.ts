@@ -155,7 +155,7 @@ export async function toggleFollowOrganization(
     .maybeSingle();
 
   const { data: publisher } = await supabase
-    .from("profiles")
+    .from("publisher_profiles")
     .select("account_type")
     .eq("id", organizationId)
     .maybeSingle();

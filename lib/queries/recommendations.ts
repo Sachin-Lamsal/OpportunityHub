@@ -14,6 +14,7 @@ export async function getPublishedOpportunitiesForRecommendations(
     .from("opportunities")
     .select("*")
     .in("source_type", ["official", "manual", "scraped"])
+    .eq("lifecycle_status", "published")
     // Only surface opportunities that have passed verification to students.
     .eq("is_verified", true)
     .limit(filters.limit ?? 50)

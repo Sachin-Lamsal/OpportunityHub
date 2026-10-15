@@ -16,9 +16,9 @@ export async function isCurrentUserAdmin(): Promise<boolean> {
 
   const { data: adminRole } = await supabase
     .from("admin_roles")
-    .select("id")
+    .select("role")
     .eq("user_id", user.id)
     .maybeSingle();
 
-  return !!adminRole;
+  return adminRole?.role === "admin" || adminRole?.role === "superadmin";
 }

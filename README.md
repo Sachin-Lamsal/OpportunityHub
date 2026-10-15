@@ -50,7 +50,13 @@ cp .env.local.example .env.local
 
 1. Create a project at [supabase.com](https://supabase.com)
 2. Copy **Project URL** and **anon key** into `.env.local`
-3. In **SQL Editor**, run **`supabase/setup-all.sql`** once (recommended), *or*:
+3. In **SQL Editor**, run **`supabase/setup-all.sql`** once, then run these scripts in order:
+   - `supabase/migration-discovery-verification-system.sql`
+   - `supabase/migration-security-hardening.sql`
+   - `supabase/migration-publisher-workflows.sql`
+   - `supabase/migration-discovery-automated-scan-jobs.sql` if you use automated discovery scans
+
+   For an older database, instead run the full ordered migration list in `supabase/README.md`, *or*:
    - `supabase/complete-schema.sql` (all tables)
    - `supabase/migrate-opportunity-ai-fields.sql` (AI detail columns — if you already ran an older schema)
    - `supabase/migration-opportunity-ai-enrich-rpc.sql` (student AI enrich saves — required for **Generate AI details** on strict RLS)
@@ -223,7 +229,8 @@ lib/
   queries/          Supabase read helpers
   supabase/         Browser, server, middleware clients
 supabase/
-  setup-all.sql     Full database schema (run once)
+  setup-all.sql     Base database schema (run first)
+  migration-publisher-workflows.sql  Publisher verification and reviewed listing lifecycle
   seed-opportunities.sql  Sample opportunities
 ```
 
@@ -255,7 +262,7 @@ See `.env.local.example` for all variables.
 | `opportunity_comments` / `opportunity_reviews` | Community on listing pages |
 | `organization_follows` | Follow school/org publishers |
 
-**Verification:** Ingested listings are `unverified`; manual publisher forms are `verified` with `source_type: manual`. See `migration-ingestion-and-verification.sql`.
+**Verification:** Publisher profile verification and opportunity verification are separate. Publishers save drafts or submit listings for review; an administrator publishes approved listings. See `migration-publisher-workflows.sql`.
 
 ## MVP limits
 
@@ -268,12 +275,12 @@ The app code is ready when `npm run build` passes. You still need to configure s
 ### 1. Supabase
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. **SQL Editor → Run** `supabase/setup-all.sql` once (recommended).
+2. **SQL Editor → Run** `supabase/setup-all.sql`, then in order run `migration-discovery-verification-system.sql`, `migration-security-hardening.sql`, and `migration-publisher-workflows.sql`. Run `migration-discovery-automated-scan-jobs.sql` if you enable automated discovery scans.
 3. **Authentication → URL configuration:** set Site URL and add `https://<your-domain>/auth/callback` (and localhost for dev).
 4. **Authentication → Email:** disable **Confirm email** for local dev, or configure **SMTP** (e.g. Resend) for production.
 5. Copy **Project URL**, **anon key**, and (for crons) **service role key** into env.
 
-Incremental upgrades: see `supabase/README.md` (migrations 1–12).
+Incremental upgrades: see `supabase/README.md` (migrations 1–16).
 
 ### 2. Local environment
 

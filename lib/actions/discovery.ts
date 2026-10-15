@@ -309,6 +309,7 @@ export async function approveCandidate(
         source_url: candidate.original_url,
         is_verified: true,
         verification_status: "verified",
+        lifecycle_status: "published",
         source_type: "official",
         created_by: officialProfile.id,
         raw_source_text: candidate.raw_content || null,

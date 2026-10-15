@@ -48,6 +48,42 @@ export async function getOpportunitiesCreatedByUser(
   return (data ?? []) as Opportunity[];
 }
 
+export interface PublisherOpportunityStats {
+  draft: number;
+  pendingReview: number;
+  published: number;
+  needsAttention: number;
+}
+
+export async function getPublisherOpportunityStats(
+  userId: string,
+): Promise<PublisherOpportunityStats> {
+  const supabase = await createClient();
+  const statuses = ["draft", "pending_review", "published", "rejected"] as const;
+
+  const results = await Promise.all(
+    statuses.map(async (lifecycleStatus) => {
+      const { count, error } = await supabase
+        .from("opportunities")
+        .select("id", { count: "exact", head: true })
+        .eq("created_by", userId)
+        .eq("lifecycle_status", lifecycleStatus);
+      return { lifecycleStatus, count: error ? 0 : (count ?? 0) };
+    }),
+  );
+
+  const counts = Object.fromEntries(
+    results.map(({ lifecycleStatus, count }) => [lifecycleStatus, count]),
+  ) as Record<(typeof statuses)[number], number>;
+
+  return {
+    draft: counts.draft,
+    pendingReview: counts.pending_review,
+    published: counts.published,
+    needsAttention: counts.rejected,
+  };
+}
+
 /**
  * PostgREST `.or()` grammar treats these characters as structural delimiters.
  * Stripping them prevents a user-supplied search term from injecting extra
@@ -65,6 +101,7 @@ export async function getOpportunities(
   let query = supabase
     .from("opportunities")
     .select("*")
+    .eq("lifecycle_status", "published")
     .order("created_at", { ascending: false });
 
   if (filters.subject) {

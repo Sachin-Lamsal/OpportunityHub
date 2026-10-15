@@ -1,5 +1,4 @@
 "use server";
-
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { canManageOpportunities } from "@/lib/auth/account";
@@ -301,6 +300,7 @@ export async function saveIngestedOpportunity(
     source_url: draft.source_url || null,
     is_verified: false,
     verification_status: "unverified",
+    lifecycle_status: "pending_review",
     source_type: draft.source_type,
     raw_source_text: draft.raw_source_text || null,
     created_by: user.id,
@@ -322,103 +322,7 @@ export async function saveIngestedOpportunity(
   revalidatePath("/opportunities");
   revalidatePath("/dashboard");
   revalidatePath("/org/dashboard");
+  revalidatePath("/school/dashboard");
+  revalidatePath("/admin/publisher-review");
   return { success: true, opportunityId: data.id };
-}
-
-/**
- * Verifies an opportunity (marks is_verified = true).
- * Accessible by schools and organizations.
- */
-export async function verifyOpportunityAction(
-  opportunityId: string,
-): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, error: "You must be signed in to verify listings." };
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("account_type")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  const accountType = profile?.account_type as AccountType | undefined;
-  if (!canManageOpportunities(accountType)) {
-    return {
-      success: false,
-      error: "Only schools and organizations can verify opportunities.",
-    };
-  }
-
-  const { error } = await supabase.rpc("verify_opportunity", {
-    opp_id: opportunityId,
-  });
-
-  if (error) {
-    const msg =
-      error.message.includes("not the publisher") ||
-      error.message.includes("you are not the publisher")
-        ? "You can only verify listings published by your account."
-        : error.message;
-    return { success: false, error: msg };
-  }
-
-  revalidatePath("/opportunities");
-  revalidatePath(`/opportunities/${opportunityId}`);
-  revalidatePath("/org/dashboard");
-  return { success: true };
-}
-
-/**
- * Rejects an unverified opportunity.
- */
-export async function rejectOpportunityAction(
-  opportunityId: string,
-): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, error: "You must be signed in to review listings." };
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("account_type")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  const accountType = profile?.account_type as AccountType | undefined;
-  if (!canManageOpportunities(accountType)) {
-    return {
-      success: false,
-      error: "Only schools and organizations can reject opportunities.",
-    };
-  }
-
-  const { error } = await supabase.rpc("reject_opportunity", {
-    opp_id: opportunityId,
-  });
-
-  if (error) {
-    const msg =
-      error.message.includes("not the publisher") ||
-      error.message.includes("you are not the publisher")
-        ? "You can only reject listings published by your account."
-        : error.message;
-    return { success: false, error: msg };
-  }
-
-  revalidatePath("/opportunities");
-  revalidatePath(`/opportunities/${opportunityId}`);
-  return { success: true };
 }
