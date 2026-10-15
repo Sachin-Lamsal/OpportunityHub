@@ -4,7 +4,7 @@
 
 Your credentials have been added to `.env.local`:
 - ✅ Supabase Project URL
-- ✅ Supabase Anon Key  
+- ✅ Supabase Anon Key
 - ✅ Google OAuth Client ID
 - ✅ Google OAuth Client Secret
 
