@@ -11,7 +11,7 @@ export default function PublisherProfileReviewActions({
   publisherId: string;
 }) {
   const [notes, setNotes] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ text: string; tone: "error" | "success" } | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -19,14 +19,27 @@ export default function PublisherProfileReviewActions({
     startTransition(async () => {
       setMessage(null);
       const result = await reviewPublisherProfile(publisherId, decision, notes);
-      setMessage(result.error ?? result.success ?? "Unable to save review.");
-      if (!result.error) router.refresh();
+      if (result.error) {
+        setMessage({ text: result.error, tone: "error" });
+        return;
+      }
+
+      setMessage({
+        text: result.success ?? "Review saved.",
+        tone: "success",
+      });
+      setNotes("");
+      router.refresh();
     });
   };
 
   return (
     <div className="space-y-3">
+      <label htmlFor="profile-review-note" className="block text-sm font-medium text-slate-700">
+        Review note (optional)
+      </label>
       <textarea
+        id="profile-review-note"
         value={notes}
         onChange={(event) => setNotes(event.target.value)}
         rows={3}
@@ -49,7 +62,18 @@ export default function PublisherProfileReviewActions({
           Request changes
         </Button>
       </div>
-      {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+      {message ? (
+        <p
+          role={message.tone === "error" ? "alert" : "status"}
+          className={
+            message.tone === "error"
+              ? "text-sm font-medium text-red-700"
+              : "text-sm font-medium text-emerald-700"
+          }
+        >
+          {message.text}
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -27,6 +27,23 @@ function getDeadlineRange() {
   };
 }
 
+/**
+ * `review_note` is written by administrators and is intended for the owning
+ * publisher (it is rendered in the publisher's own listing screens). Public
+ * browse and detail queries select `*`, so without this the note would be
+ * serialised into every anonymous page payload. Strip it from public reads;
+ * owner and admin reads keep it.
+ */
+function withoutInternalNotes(rows: unknown[]): Opportunity[] {
+  return rows.map((row) => {
+    if (!row || typeof row !== "object") return row as Opportunity;
+    const { review_note: _note, ...rest } = row as Opportunity & {
+      review_note?: string | null;
+    };
+    return rest as Opportunity;
+  });
+}
+
 export async function getOpportunitiesCreatedByUser(
   userId: string,
   limit = 10,
@@ -45,6 +62,7 @@ export async function getOpportunitiesCreatedByUser(
     return [];
   }
 
+  // Owner view: keep review_note so the publisher can read admin feedback.
   return (data ?? []) as Opportunity[];
 }
 
@@ -162,7 +180,7 @@ export async function getOpportunities(
     return [];
   }
 
-  return (data ?? []) as Opportunity[];
+  return withoutInternalNotes(data ?? []);
 }
 
 export async function getOpportunityById(id: string): Promise<Opportunity | null> {
@@ -181,7 +199,8 @@ export async function getOpportunityById(id: string): Promise<Opportunity | null
     return null;
   }
 
-  return data as Opportunity;
+  // Public detail view: admin review notes must not reach anonymous readers.
+  return withoutInternalNotes([data])[0] ?? null;
 }
 
 export async function getSavedOpportunityIds(): Promise<Set<string>> {

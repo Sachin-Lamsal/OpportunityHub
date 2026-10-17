@@ -1,24 +1,46 @@
 import { type InputHTMLAttributes } from "react";
+import { errorBase, fieldBase, labelBase } from "./fieldStyles";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
   error?: string;
+  /** Optional helper text rendered under the field. */
+  hint?: string;
 }
 
-export default function Input({ label, error, id, className = "", ...props }: InputProps) {
+export default function Input({
+  label,
+  error,
+  hint,
+  id,
+  className = "",
+  ...props
+}: InputProps) {
   const inputId = id ?? props.name;
+  const describedBy = error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined;
 
   return (
     <div>
-      <label htmlFor={inputId} className="block text-sm font-medium text-slate-700">
+      <label htmlFor={inputId} className={labelBase}>
         {label}
       </label>
       <input
         id={inputId}
-        className={`mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 ${className}`}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy}
+        className={`${fieldBase} ${error ? "border-[var(--color-danger)]" : ""} ${className}`}
         {...props}
       />
-      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      {error && (
+        <p id={`${inputId}-error`} className={errorBase}>
+          {error}
+        </p>
+      )}
+      {!error && hint && (
+        <p id={`${inputId}-hint`} className="mt-1.5 text-sm text-[var(--muted)]">
+          {hint}
+        </p>
+      )}
     </div>
   );
 }
