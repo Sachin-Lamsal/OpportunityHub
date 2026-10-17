@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Opportunity } from "@/lib/types";
+import { withoutInternalNotes } from "@/lib/opportunities/internal-notes";
 
 export interface OpportunityFilters {
   q?: string;
@@ -25,23 +26,6 @@ function getDeadlineRange() {
     weekEnd: endOfWeek.toISOString().split("T")[0],
     monthEnd: endOfMonth.toISOString().split("T")[0],
   };
-}
-
-/**
- * `review_note` is written by administrators and is intended for the owning
- * publisher (it is rendered in the publisher's own listing screens). Public
- * browse and detail queries select `*`, so without this the note would be
- * serialised into every anonymous page payload. Strip it from public reads;
- * owner and admin reads keep it.
- */
-function withoutInternalNotes(rows: unknown[]): Opportunity[] {
-  return rows.map((row) => {
-    if (!row || typeof row !== "object") return row as Opportunity;
-    const { review_note: _note, ...rest } = row as Opportunity & {
-      review_note?: string | null;
-    };
-    return rest as Opportunity;
-  });
 }
 
 export async function getOpportunitiesCreatedByUser(
@@ -201,6 +185,36 @@ export async function getOpportunityById(id: string): Promise<Opportunity | null
 
   // Public detail view: admin review notes must not reach anonymous readers.
   return withoutInternalNotes([data])[0] ?? null;
+}
+
+/**
+ * Owner-scoped read used by the publisher edit screen.
+ *
+ * Scoping `created_by` in the query (instead of reading the row and comparing
+ * afterwards) means a listing with a NULL `created_by` — legacy/seed rows — is
+ * never editable by an unrelated publisher. Unlike the public read, this keeps
+ * `review_note`, because it is admin feedback written for this publisher.
+ * Returns null when the listing does not exist or is not owned by `userId`.
+ */
+export async function getOpportunityForOwnerEdit(
+  id: string,
+  userId: string,
+): Promise<Opportunity | null> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("opportunities")
+    .select("*")
+    .eq("id", id)
+    .eq("created_by", userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Failed to load listing for editing:", error.message);
+    return null;
+  }
+
+  return (data as Opportunity | null) ?? null;
 }
 
 export async function getSavedOpportunityIds(): Promise<Set<string>> {

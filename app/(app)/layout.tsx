@@ -3,6 +3,10 @@ import AppFooter from "@/components/layout/AppFooter";
 import { getProfile } from "@/lib/actions/auth";
 import type { AccountType } from "@/lib/types";
 
+// Every page in this group depends on the signed-in user (and therefore on
+// cookies and the database), so none of them may be prerendered at build time.
+export const dynamic = "force-dynamic";
+
 export default async function AppLayout({
   children,
 }: {

@@ -101,15 +101,18 @@ export async function submitReview(
     return { error: "You must be signed in to contribute participant advice." };
   }
 
-  // Check if student has logged this in their portfolio for verified participant badge
-  const { data: activity } = await supabase
+  // Verified-participant badge: has this user logged this opportunity in their
+  // portfolio? `.limit(1)` is required — a student may log the same opportunity
+  // more than once, and `maybeSingle()` errors on multiple rows, which silently
+  // downgraded them to an unverified participant.
+  const { data: activities } = await supabase
     .from("activities")
     .select("id")
     .eq("user_id", user.id)
     .eq("opportunity_id", opportunityId)
-    .maybeSingle();
+    .limit(1);
 
-  const isVerifiedParticipant = Boolean(activity);
+  const isVerifiedParticipant = Boolean(activities && activities.length > 0);
 
   const { error } = await supabase.from("opportunity_reviews").upsert(
     {
@@ -166,15 +169,31 @@ export async function toggleFollowOrganization(
       : `/org/${organizationId}`;
 
   if (existing) {
-    await supabase.from("organization_follows").delete().eq("id", existing.id);
+    const { error } = await supabase
+      .from("organization_follows")
+      .delete()
+      .eq("id", existing.id)
+      .eq("user_id", user.id);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
     revalidatePath(publisherPath);
     return { success: true, following: false };
   }
 
-  await supabase.from("organization_follows").insert({
+  const { error: insertError } = await supabase.from("organization_follows").insert({
     user_id: user.id,
     organization_id: organizationId,
   });
+
+  if (insertError) {
+    // Without this check a failed insert still reported success and the button
+    // showed "Following" for a follow that was never saved.
+    return { success: false, error: insertError.message };
+  }
+
   revalidatePath(publisherPath);
   return { success: true, following: true };
 }

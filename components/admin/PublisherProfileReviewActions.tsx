@@ -10,6 +10,8 @@ export default function PublisherProfileReviewActions({
 }: {
   publisherId: string;
 }) {
+  // Unique per card: this component is rendered once per pending publisher.
+  const noteFieldId = `profile-review-note-${publisherId}`;
   const [notes, setNotes] = useState("");
   const [message, setMessage] = useState<{ text: string; tone: "error" | "success" } | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -35,11 +37,11 @@ export default function PublisherProfileReviewActions({
 
   return (
     <div className="space-y-3">
-      <label htmlFor="profile-review-note" className="block text-sm font-medium text-slate-700">
+      <label htmlFor={noteFieldId} className="block text-sm font-medium text-slate-700">
         Review note (optional)
       </label>
       <textarea
-        id="profile-review-note"
+        id={noteFieldId}
         value={notes}
         onChange={(event) => setNotes(event.target.value)}
         rows={3}

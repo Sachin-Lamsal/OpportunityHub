@@ -4,6 +4,37 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAuditEvent } from "@/lib/discovery/audit";
+import { getCurrentAdmin } from "@/lib/auth/admin";
+
+/**
+ * Single source of truth for "may this caller decide on discovery items?".
+ *
+ * The previous inline check accepted ANY row in `admin_roles`, which includes
+ * `role = 'moderator'`, while the database restricts the underlying writes with
+ * `is_admin()` (admin/superadmin only). A moderator therefore received
+ * `success: true` while both updates silently matched zero rows.
+ */
+async function requireAdmin(): Promise<
+  { ok: true; user: { id: string } } | { ok: false; error: string }
+> {
+  const admin = await getCurrentAdmin();
+
+  if (!admin) {
+    // Distinguish "not signed in" from "signed in without an admin role" so the
+    // caller does not have to make a second auth round trip.
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    return {
+      ok: false,
+      error: user ? "Admin access required" : "Not authenticated",
+    };
+  }
+
+  return { ok: true, user: { id: admin.id } };
+}
 
 
 /**
@@ -28,22 +59,10 @@ export async function createDiscoveryCandidate(data: {
   raw_content?: string;
 }): Promise<{ success: boolean; candidateId?: string; error?: string }> {
   const authClient = await createClient();
-  const {
-    data: { user },
-  } = await authClient.auth.getUser();
+  const gate = await requireAdmin();
 
-  if (!user) {
-    return { success: false, error: "Not authenticated" };
-  }
-
-  const { data: adminRole } = await authClient
-    .from("admin_roles")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (!adminRole) {
-    return { success: false, error: "Admin access required" };
+  if (!gate.ok) {
+    return { success: false, error: gate.error };
   }
 
   try {
@@ -115,24 +134,13 @@ export async function addVerificationEvidence(data: {
   notes?: string;
 }): Promise<{ success: boolean; error?: string }> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const gate = await requireAdmin();
 
-  if (!user) {
-    return { success: false, error: "Not authenticated" };
+  if (!gate.ok) {
+    return { success: false, error: gate.error };
   }
 
-  // Check if user is admin
-  const { data: adminRole } = await supabase
-    .from("admin_roles")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (!adminRole) {
-    return { success: false, error: "Admin access required" };
-  }
+  const user = gate.user;
 
   try {
     const { error } = await supabase
@@ -185,23 +193,13 @@ export async function createRiskFlag(data: {
   suggested_action?: string;
 }): Promise<{ success: boolean; error?: string }> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const gate = await requireAdmin();
 
-  if (!user) {
-    return { success: false, error: "Not authenticated" };
+  if (!gate.ok) {
+    return { success: false, error: gate.error };
   }
 
-  const { data: adminRole } = await supabase
-    .from("admin_roles")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (!adminRole) {
-    return { success: false, error: "Admin access required" };
-  }
+  const user = gate.user;
 
   try {
     const { error } = await supabase
@@ -247,23 +245,13 @@ export async function approveCandidate(
   reviewNotes?: string,
 ): Promise<{ success: boolean; opportunityId?: string; error?: string }> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const gate = await requireAdmin();
 
-  if (!user) {
-    return { success: false, error: "Not authenticated" };
+  if (!gate.ok) {
+    return { success: false, error: gate.error };
   }
 
-  const { data: adminRole } = await supabase
-    .from("admin_roles")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (!adminRole) {
-    return { success: false, error: "Admin access required" };
-  }
+  const user = gate.user;
 
   try {
     // Get candidate
@@ -321,14 +309,31 @@ export async function approveCandidate(
       return { success: false, error: `Failed to create opportunity: ${oppError?.message}` };
     }
 
-    // Update candidate status
-    await supabase
+    // From here the listing exists. A later failure must not skip the audit
+    // trail or the cache revalidation, so failures are collected instead of
+    // returned early.
+    const problems: string[] = [];
+
+    // The candidate status is inspected because an RLS denial or a missing row
+    // returns `{ data: null, error: null }` — the previous code discarded it and
+    // still reported success.
+    const { data: updatedCandidate, error: candidateUpdateError } = await supabase
       .from("discovery_candidates")
       .update({ status: "approved" })
-      .eq("id", candidateId);
+      .eq("id", candidateId)
+      .select("id");
 
-    // Update approval queue
-    await supabase
+    if (candidateUpdateError) {
+      problems.push(`the candidate status could not be updated (${candidateUpdateError.message})`);
+    } else if (!updatedCandidate || updatedCandidate.length === 0) {
+      problems.push(
+        "the candidate record could not be updated — this account may not be allowed to manage discovery candidates",
+      );
+    }
+
+    // No 0-row check here on purpose: nothing in the codebase inserts into
+    // approval_queue, so an unmatched row is normal rather than an error.
+    const { error: queueUpdateError } = await supabase
       .from("approval_queue")
       .update({
         status: "approved",
@@ -338,18 +343,35 @@ export async function approveCandidate(
       })
       .eq("candidate_id", candidateId);
 
+    if (queueUpdateError) {
+      problems.push(`the approval queue could not be updated (${queueUpdateError.message})`);
+    }
+
     await logAuditEvent({
       action: "approve",
       actor_id: user.id,
       actor_type: "admin",
       target_type: "candidate",
       target_id: candidateId,
-      details: { opportunityId: opportunity.id, notes: reviewNotes },
-      success: true,
+      details: {
+        opportunityId: opportunity.id,
+        notes: reviewNotes,
+        ...(problems.length > 0 ? { problems } : {}),
+      },
+      success: problems.length === 0,
     });
 
     revalidatePath("/admin/queue");
     revalidatePath("/opportunities");
+
+    if (problems.length > 0) {
+      return {
+        success: false,
+        error: `The listing was published, but ${problems.join("; ")}.`,
+        opportunityId: opportunity.id,
+      };
+    }
+
     return { success: true, opportunityId: opportunity.id };
   } catch (err) {
     return {
@@ -367,31 +389,37 @@ export async function rejectCandidate(
   reason?: string,
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const gate = await requireAdmin();
 
-  if (!user) {
-    return { success: false, error: "Not authenticated" };
+  if (!gate.ok) {
+    return { success: false, error: gate.error };
   }
 
-  const { data: adminRole } = await supabase
-    .from("admin_roles")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (!adminRole) {
-    return { success: false, error: "Admin access required" };
-  }
+  const user = gate.user;
 
   try {
-    await supabase
+    // Both writes are checked: PostgREST reports "no matching row" as a null
+    // result with no error, so an unchecked update reports success while
+    // nothing was rejected.
+    const { data: rejected, error: candidateError } = await supabase
       .from("discovery_candidates")
       .update({ status: "rejected" })
-      .eq("id", candidateId);
+      .eq("id", candidateId)
+      .select("id");
 
-    await supabase
+    if (candidateError) {
+      return { success: false, error: candidateError.message };
+    }
+
+    if (!rejected || rejected.length === 0) {
+      return {
+        success: false,
+        error:
+          "Candidate not found, or this account is not allowed to decide on discovery candidates.",
+      };
+    }
+
+    const { error: queueError } = await supabase
       .from("approval_queue")
       .update({
         status: "rejected",
@@ -400,6 +428,13 @@ export async function rejectCandidate(
         review_notes: reason || null,
       })
       .eq("candidate_id", candidateId);
+
+    if (queueError) {
+      return {
+        success: false,
+        error: `Candidate rejected but the approval queue could not be updated: ${queueError.message}`,
+      };
+    }
 
     await logAuditEvent({
       action: "reject",

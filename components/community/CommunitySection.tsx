@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useTransition, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import type { OpportunityComment, OpportunityReview, Profile } from "@/lib/types";
 import { postComment, deleteComment, submitReview } from "@/lib/actions/community";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Textarea from "@/components/ui/Textarea";
+import FormMessage from "@/components/ui/FormMessage";
 
 interface CommunitySectionProps {
   opportunityId: string;
@@ -23,6 +25,10 @@ export default function CommunitySection({
 }: CommunitySectionProps) {
   const [activeTab, setActiveTab] = useState<"advice" | "qa">("advice");
   const [isPending, startTransition] = useTransition();
+  // The comments and reviews are rendered from server props, so a successful
+  // mutation has to pull the new rows in. Without this the action reported
+  // "Comment posted!" while the list stayed exactly as it was.
+  const router = useRouter();
 
   // Review form state
   const [showReviewForm, setShowReviewForm] = useState(false);
@@ -35,7 +41,10 @@ export default function CommunitySection({
   // Comment form state
   const [newComment, setNewComment] = useState("");
   const [replyingToId, setReplyingToId] = useState<string | null>(null);
-  const [, setCommentMsg] = useState<{ error?: string; success?: string } | null>(null);
+  const [commentMsg, setCommentMsg] = useState<{
+    error?: string;
+    success?: string;
+  } | null>(null);
 
   function handleSubmitReview(e: FormEvent) {
     e.preventDefault();
@@ -55,6 +64,7 @@ export default function CommunitySection({
         setPrepTips("");
         setCommonMistakes("");
         setSkillsDeveloped("");
+        router.refresh();
       }
     });
   }
@@ -67,17 +77,25 @@ export default function CommunitySection({
       if (res.error) {
         setCommentMsg({ error: res.error });
       } else {
-        setCommentMsg({ success: res.success });
+        setCommentMsg({ success: res.success ?? "Comment posted!" });
         setNewComment("");
         setReplyingToId(null);
+        router.refresh();
       }
     });
   }
 
   function handleDeleteComment(id: string) {
     if (!confirm("Delete this comment?")) return;
+    setCommentMsg(null);
     startTransition(async () => {
-      await deleteComment(id, opportunityId);
+      const res = await deleteComment(id, opportunityId);
+      if (res.error) {
+        setCommentMsg({ error: res.error });
+      } else {
+        setCommentMsg({ success: res.success ?? "Comment deleted." });
+        router.refresh();
+      }
     });
   }
 
@@ -255,6 +273,10 @@ export default function CommunitySection({
         <div className="pt-4 space-y-4">
           {currentProfile ? (
             <form onSubmit={(e) => handlePostComment(e, replyingToId)} className="space-y-2">
+              <FormMessage
+                error={commentMsg?.error}
+                success={commentMsg?.success}
+              />
               <Textarea
                 label={replyingToId ? "Reply to discussion" : "Ask a question about this opportunity"}
                 rows={2}

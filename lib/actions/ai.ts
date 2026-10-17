@@ -13,6 +13,7 @@ import {
 } from "@/lib/ai/prompts";
 import { getFallbackSuggestions } from "@/lib/ai/fallback";
 import { generateWithUserQuota } from "@/lib/ai/usage";
+import { getTotalTalksLimit } from "@/lib/ai/tiers";
 import {
   buildCVFromProfile,
   cvToPlainText,
@@ -158,7 +159,7 @@ export async function sendAiTalkMessage(
   if (!response) {
     const fallback = getFallbackSuggestions(profile, activities);
     const prefix = quotaExhausted
-      ? "You have used all 10 of your monthly AI talks (resets on the 1st of next month)."
+      ? `You have used all ${getTotalTalksLimit()} of your monthly AI talks (resets on the 1st of next month).`
       : "The live AI advisor is temporarily unavailable.";
 
     return {

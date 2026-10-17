@@ -1,11 +1,19 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { hasSupabaseEnv, getNormalizedSupabaseUrl, getSupabaseAnonKey } from "@/lib/env";
+import {
+  describeSupabaseEnvProblem,
+  hasSupabaseEnv,
+  getNormalizedSupabaseUrl,
+  getSupabaseAnonKey,
+} from "@/lib/env";
 
 export async function createClient() {
   if (!hasSupabaseEnv()) {
+    // Naming the exact broken variable (and that it is still a placeholder)
+    // turns "the site is mysteriously empty" into an actionable message.
     throw new Error(
-      "Missing Supabase env vars. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local",
+      describeSupabaseEnvProblem() ??
+        "Missing Supabase env vars. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local",
     );
   }
 

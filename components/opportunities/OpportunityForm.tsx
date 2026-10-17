@@ -15,6 +15,7 @@ import Select from "@/components/ui/Select";
 import Textarea from "@/components/ui/Textarea";
 import FormMessage from "@/components/ui/FormMessage";
 import { Card } from "@/components/ui/Card";
+import { useActionFormSubmit } from "@/components/ui/useActionFormSubmit";
 
 const initialState: CreateOpportunityState = {};
 
@@ -32,6 +33,7 @@ export default function OpportunityForm({
   const data = initialData ?? copyFrom;
   const actionToUse = isEditing ? updateOpportunity : createOpportunity;
   const [state, formAction, pending] = useActionState(actionToUse, initialState);
+  const submit = useActionFormSubmit(formAction);
   useActionRedirect(state.redirectTo);
 
   return (
@@ -49,7 +51,7 @@ export default function OpportunityForm({
           : "Save a draft while you work, then submit it for an administrator to review before students can see it."}
       </p>
 
-      <form action={formAction} className="mt-6 space-y-8">
+      <form onSubmit={submit} className="mt-6 space-y-8">
         {initialData?.id ? (
           <input type="hidden" name="opportunity_id" value={initialData.id} />
         ) : null}

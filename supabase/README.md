@@ -6,8 +6,9 @@ Run these files in **Supabase Dashboard → SQL Editor → New query**, one at a
 2. `migration-discovery-verification-system.sql` — creates administrator roles and discovery-review tables.
 3. `migration-security-hardening.sql` — restricts database functions that could expose private account data.
 4. `migration-publisher-workflows.sql` — creates publisher verification and the draft → review → published listing process.
+5. `migration-ai-enrichment-authorization.sql` — **existing databases only.** Re-states `save_opportunity_ai_enrichment` with the ownership check that `setup-all.sql` already contains, so databases installed before that fix are hardened too. Skip it for a brand-new project (step 1 already includes the guarded function).
 
-All four files are safe to run again. Do not run more than these four files; the older split setup and upgrade scripts were intentionally removed to avoid conflicting instructions.
+All five files are safe to run again. Do not run other setup or upgrade scripts; the older split ones were intentionally removed to avoid conflicting instructions.
 
 ## After the SQL succeeds
 

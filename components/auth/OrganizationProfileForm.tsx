@@ -13,6 +13,7 @@ import Textarea from "@/components/ui/Textarea";
 import FormMessage from "@/components/ui/FormMessage";
 import { Card } from "@/components/ui/Card";
 import RequestPublisherVerificationButton from "@/components/publishers/RequestPublisherVerificationButton";
+import { useActionFormSubmit } from "@/components/ui/useActionFormSubmit";
 
 const initialState: OrgProfileState = {};
 
@@ -27,6 +28,7 @@ export default function OrganizationProfileForm({
     updateOrganizationProfile,
     initialState,
   );
+  const submit = useActionFormSubmit(formAction);
 
   const isSchool = profile.account_type === "school";
   const nameLabel = isSchool ? "School name" : "Organization name";
@@ -51,7 +53,7 @@ export default function OrganizationProfileForm({
           relevant.
         </p>
 
-        <form action={formAction} className="mt-6 space-y-4">
+        <form onSubmit={submit} className="mt-6 space-y-4">
           <FormMessage error={state.error} success={state.success} />
 
           <Input

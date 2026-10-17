@@ -8,6 +8,7 @@ export const metadata = {
   title: "AI Opportunity Ingestion & OCR",
 };
 
+
 export default async function OpportunityIngestPage() {
   const profile = await getProfile();
 

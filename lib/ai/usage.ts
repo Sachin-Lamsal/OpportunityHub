@@ -1,11 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
-import {
-  AI_TIERS,
-  getTierLimits,
-  type AiTier,
-  type AiTierId,
-} from "@/lib/ai/tiers";
+import { AI_TIERS, getTierLimits, type AiTier, type AiTierId } from "@/lib/ai/tiers";
 import { generateTextWithTier, type GenerateTextResult } from "@/lib/ai/gemini";
+import {
+  currentResetMonth,
+  decideFallbackAccounting,
+  quotaExhaustedMessage,
+  remainingForTier,
+  resolveActiveTier,
+  TIER_COLUMN,
+  usedForTier,
+  type UsageRow,
+} from "@/lib/ai/quota-core";
 
 export interface AiUsageTierSummary {
   id: AiTierId;
@@ -25,46 +30,7 @@ export interface AiUsageSummary {
   tiers: AiUsageTierSummary[];
 }
 
-interface UsageRow {
-  user_id: string;
-  premium_used: number;
-  standard_used: number;
-  basic_used: number;
-  reset_month: string;
-}
-
 const MAX_CAS_ATTEMPTS = 5;
-
-function currentResetMonth(): string {
-  const now = new Date();
-  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
-  return `${now.getUTCFullYear()}-${month}`;
-}
-
-function usedForTier(row: UsageRow, tierId: AiTierId): number {
-  switch (tierId) {
-    case "premium":
-      return row.premium_used;
-    case "standard":
-      return row.standard_used;
-    case "basic":
-      return row.basic_used;
-  }
-}
-
-function remainingForTier(row: UsageRow, tierId: AiTierId): number {
-  const limits = getTierLimits();
-  return Math.max(0, limits[tierId] - usedForTier(row, tierId));
-}
-
-export function resolveActiveTier(row: UsageRow): AiTier | null {
-  for (const tier of AI_TIERS) {
-    if (remainingForTier(row, tier.id) > 0) {
-      return tier;
-    }
-  }
-  return null;
-}
 
 export async function getOrCreateUsageRow(userId: string): Promise<UsageRow> {
   const supabase = await createClient();
@@ -158,13 +124,6 @@ export async function getAIUsageSummaryForUser(
   };
 }
 
-const TIER_COLUMN: Record<AiTierId, "premium_used" | "standard_used" | "basic_used"> =
-  {
-    premium: "premium_used",
-    standard: "standard_used",
-    basic: "basic_used",
-  };
-
 /**
  * Atomically increments a usage counter using compare-and-swap.
  *
@@ -231,12 +190,7 @@ export async function reserveTierCredit(
     const tier = resolveActiveTier(row);
 
     if (!tier) {
-      const limits = getTierLimits();
-      const total = limits.premium + limits.standard + (limits.basic ?? 0);
-      return {
-        granted: false,
-        message: `You have used all ${total} of your monthly AI requests. They reset on the 1st. Offline rule-based guidance is still available.`,
-      };
+      return { granted: false, message: quotaExhaustedMessage() };
     }
 
     const updated = await atomicIncrement(userId, TIER_COLUMN[tier.id]);
@@ -289,6 +243,36 @@ export async function refundTierCredit(userId: string, tierId: AiTierId): Promis
   }
 }
 
+/**
+ * Reserves one credit from a SPECIFIC tier, atomically.
+ *
+ * Needed by the model-fallback path: it may only fall back to `standard` when
+ * that tier still has capacity, and it must charge that tier when the fallback
+ * succeeds. The previous code merely *read* the remaining standard credits and
+ * then refunded the premium reservation without ever incrementing standard —
+ * every successful fallback call was free and unbounded.
+ */
+export async function reserveTierCreditForTier(
+  userId: string,
+  tierId: AiTierId,
+): Promise<{ granted: true } | { granted: false; reason: "exhausted" | "busy" }> {
+  for (let attempt = 0; attempt < MAX_CAS_ATTEMPTS; attempt++) {
+    const row = await getOrCreateUsageRow(userId);
+
+    if (remainingForTier(row, tierId) <= 0) {
+      return { granted: false, reason: "exhausted" };
+    }
+
+    const updated = await atomicIncrement(userId, TIER_COLUMN[tierId]);
+
+    if (updated !== null) {
+      return { granted: true };
+    }
+  }
+
+  return { granted: false, reason: "busy" };
+}
+
 export interface GenerateWithQuotaResult extends GenerateTextResult {
   tierUsed?: AiTierId;
   tierLabel?: string;
@@ -312,41 +296,76 @@ export async function generateWithUserQuota(
     return { text: null, quotaExhausted: true, error: reservation.message };
   }
 
-  let result = await generateTextWithTier(prompt, reservation.tier);
-  let usedTier = reservation.tier;
+  const reservedTier = reservation.tier;
+  const primaryResult = await generateTextWithTier(prompt, reservedTier);
 
-  // Resilient model fallback: if primary model fails, try the fallback model if standard quota is available
-  if (!result.text && usedTier.id === "premium") {
+  let result = primaryResult;
+  let fallbackReserved = false;
+  let fallbackCallSucceeded = false;
+
+  // Resilient model fallback: if the primary model fails, try the smaller
+  // fallback model. The fallback tier is RESERVED before it is called and the
+  // primary reservation is refunded immediately, so the user never holds two
+  // credits for a single request (which could refuse a concurrent request that
+  // should have been allowed).
+  if (!primaryResult.text && reservedTier.id === "premium") {
     const fallbackTier = AI_TIERS.find((t) => t.id === "standard");
-    const latestRow = await getOrCreateUsageRow(userId);
-    if (fallbackTier && remainingForTier(latestRow, fallbackTier.id) > 0) {
-      const fallbackResult = await generateTextWithTier(prompt, fallbackTier);
-      if (fallbackResult.text) {
-        result = fallbackResult;
-        // We reserved premium but actually consumed standard. Correct the
-        // accounting rather than silently charging the wrong bucket.
-        await refundTierCredit(userId, reservation.tier.id);
-        usedTier = fallbackTier;
+
+    if (fallbackTier) {
+      const fallbackReservation = await reserveTierCreditForTier(
+        userId,
+        fallbackTier.id,
+      );
+
+      fallbackReserved = fallbackReservation.granted;
+
+      if (fallbackReserved) {
+        await refundTierCredit(userId, reservedTier.id);
+
+        const fallbackResult = await generateTextWithTier(prompt, fallbackTier);
+        fallbackCallSucceeded = Boolean(fallbackResult.text);
+
+        if (fallbackResult.text) {
+          result = fallbackResult;
+        } else {
+          await refundTierCredit(userId, fallbackTier.id);
+        }
       }
     }
   }
 
-  if (result.text) {
+  const accounting = decideFallbackAccounting({
+    reservedTier: reservedTier.id,
+    reservedCallSucceeded: Boolean(primaryResult.text),
+    fallbackReserved,
+    fallbackCallSucceeded,
+  });
+
+  // Refund the reserved tier when nothing was charged for it. The branches
+  // above already settled the fallback paths, so this only covers the plain
+  // "primary failed and we did not fall back" case.
+  if (!accounting.chargedTier && !fallbackReserved) {
+    await refundTierCredit(userId, reservedTier.id);
+  }
+
+  if (result.text && accounting.chargedTier) {
+    const charged = AI_TIERS.find((t) => t.id === accounting.chargedTier);
+
     return {
       ...result,
-      tierUsed: usedTier.id,
-      tierLabel: usedTier.label,
+      tierUsed: accounting.chargedTier,
+      tierLabel: charged?.label,
     };
   }
 
-  // Provider failed: give the credit back.
-  await refundTierCredit(userId, usedTier.id);
-  return result;
+  return { text: result.text, error: result.error, quotaExhausted: false };
 }
 
 export function formatUsageHint(summary: AiUsageSummary): string {
   if (summary.activeTier === "exhausted" || summary.totalRemaining === 0) {
-    return "Monthly AI talks reached (10/10). Offline portfolio guidance is active.";
+    // Use the configured limit, never a hardcoded number: the budget comes from
+    // STUDENT_AI_TALKS_LIMIT / AI_TIER_* and is not always 10.
+    return `Monthly AI talks reached (${summary.totalUsed}/${summary.totalLimit}). Offline portfolio guidance is active.`;
   }
   return `${summary.totalRemaining} of ${summary.totalLimit} AI talks left this month (${summary.activeTierLabel})`;
 }

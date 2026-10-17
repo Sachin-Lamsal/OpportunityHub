@@ -13,6 +13,7 @@ import Select from "@/components/ui/Select";
 import FormMessage from "@/components/ui/FormMessage";
 import { Card } from "@/components/ui/Card";
 import GmailSignupButton from "@/components/auth/GmailSignupButton";
+import { useActionFormSubmit } from "@/components/ui/useActionFormSubmit";
 
 const initialState: AuthState = {};
 
@@ -22,6 +23,7 @@ interface SignupFormProps {
 
 export default function SignupForm({ accountType }: SignupFormProps) {
   const [state, formAction, pending] = useActionState(signup, initialState);
+  const submit = useActionFormSubmit(formAction);
   useActionRedirect(state.redirectTo);
 
   const label = ACCOUNT_TYPE_LABELS[accountType];
@@ -40,7 +42,7 @@ export default function SignupForm({ accountType }: SignupFormProps) {
             : "Publish opportunities for students across OpportunityHub."}
       </p>
 
-      <form action={formAction} className="mt-6 space-y-4">
+      <form onSubmit={submit} className="mt-6 space-y-4">
         <input type="hidden" name="account_type" value={accountType} />
         <FormMessage error={state.error} success={state.success} />
 
@@ -72,8 +74,14 @@ export default function SignupForm({ accountType }: SignupFormProps) {
           type="password"
           autoComplete="new-password"
           required
-          minLength={6}
-          placeholder="At least 6 characters"
+          // Matches the server policy in lib/actions/auth.ts: at least 8
+          // characters with an uppercase letter, a lowercase letter and a
+          // number. A looser client rule only produced a server error after the
+          // user finished typing.
+          minLength={8}
+          pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{8,}"
+          title="At least 8 characters, including an uppercase letter, a lowercase letter and a number"
+          placeholder="At least 8 characters, with upper & lower case and a number"
         />
 
         {!isStudent && (

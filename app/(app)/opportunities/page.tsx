@@ -8,6 +8,7 @@ import {
 } from "@/lib/queries/opportunities";
 import { getCuratedOpportunitySections } from "@/lib/queries/curated-opportunities";
 import CuratedOpportunitySections from "@/components/opportunities/CuratedOpportunitySections";
+import { hasActiveFilterParams } from "@/lib/opportunities/filters";
 
 export const metadata = {
   title: "Opportunities",
@@ -33,12 +34,7 @@ async function OpportunityResults({
   searchParams: OpportunitiesPageProps["searchParams"];
 }) {
   const params = await searchParams;
-  const hasFilters =
-    params.q ||
-    params.subject ||
-    params.type ||
-    params.deadline ||
-    params.format;
+  const hasFilters = hasActiveFilterParams(params);
 
   const [opportunities, savedIds, curated] = await Promise.all([
     getOpportunities({

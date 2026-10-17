@@ -42,12 +42,16 @@ export default function IngestOpportunityClient() {
     setExtractedDraft(null);
 
     startIngesting(async () => {
-      const res = await ingestFromUrl(urlInput);
-      if (res.success && res.draft) {
-        setExtractedDraft(res.draft);
-        setSourcePreview(res.sourceTextPreview || null);
-      } else {
-        setError(res.error || "Failed to scrape and format web content.");
+      try {
+        const res = await ingestFromUrl(urlInput);
+        if (res.success && res.draft) {
+          setExtractedDraft(res.draft);
+          setSourcePreview(res.sourceTextPreview || null);
+        } else {
+          setError(res.error || "Failed to scrape and format web content.");
+        }
+      } catch {
+        setError("The URL could not be read. Check your connection and try again.");
       }
     });
   }
@@ -72,12 +76,16 @@ export default function IngestOpportunityClient() {
     }
 
     startIngesting(async () => {
-      const res = await ingestFromImage(formData);
-      if (res.success && res.draft) {
-        setExtractedDraft(res.draft);
-        setSourcePreview(res.sourceTextPreview || null);
-      } else {
-        setError(res.error || "Failed to extract text and format image content.");
+      try {
+        const res = await ingestFromImage(formData);
+        if (res.success && res.draft) {
+          setExtractedDraft(res.draft);
+          setSourcePreview(res.sourceTextPreview || null);
+        } else {
+          setError(res.error || "Failed to extract text and format image content.");
+        }
+      } catch {
+        setError("The image could not be read. Check your connection and try again.");
       }
     });
   }
@@ -88,12 +96,18 @@ export default function IngestOpportunityClient() {
 
     setError(null);
     startSaving(async () => {
-      const res = await saveIngestedOpportunity(extractedDraft);
-      if (res.success && res.opportunityId) {
-        setSuccess("Opportunity published as Unverified (Internet Source)!");
-        router.push(`/opportunities/${res.opportunityId}`);
-      } else {
-        setError(res.error || "Failed to save opportunity to database.");
+      try {
+        const res = await saveIngestedOpportunity(extractedDraft);
+        if (res.success && res.opportunityId) {
+          setSuccess("Listing submitted for administrator review.");
+          router.push(`/opportunities/${res.opportunityId}`);
+        } else {
+          setError(res.error || "Failed to save opportunity to database.");
+        }
+      } catch {
+        setError(
+          "The listing could not be submitted. Check your connection and try again.",
+        );
       }
     });
   }
@@ -343,7 +357,12 @@ export default function IngestOpportunityClient() {
                 onChange={(e) =>
                   setExtractedDraft({
                     ...extractedDraft,
-                    tags: e.target.value.split(",").map((t) => t.trim().toLowerCase()),
+                    // Drop empty entries so clearing the field does not write
+                    // a one-element array containing "".
+                    tags: e.target.value
+                      .split(",")
+                      .map((t) => t.trim().toLowerCase())
+                      .filter(Boolean),
                   })
                 }
               />
@@ -388,14 +407,20 @@ export default function IngestOpportunityClient() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setExtractedDraft(null)}
+                disabled={isSaving}
+                onClick={() => {
+                  setExtractedDraft(null);
+                  setSourcePreview(null);
+                  setError(null);
+                  setSuccess(null);
+                }}
               >
                 Cancel
               </Button>
               <Button type="submit" disabled={isSaving}>
                 {isSaving
-                  ? "Publishing..."
-                  : "Publish to Catalog (Marked as Internet Source)"}
+                  ? "Submitting…"
+                  : "Submit for review (Internet Source)"}
               </Button>
             </div>
           </Card>
