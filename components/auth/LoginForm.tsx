@@ -12,6 +12,7 @@ import Input from "@/components/ui/Input";
 import FormMessage from "@/components/ui/FormMessage";
 import { Card } from "@/components/ui/Card";
 import GmailSignupButton from "@/components/auth/GmailSignupButton";
+import { useActionFormSubmit } from "@/components/ui/useActionFormSubmit";
 
 const initialState: AuthState = {};
 
@@ -22,6 +23,7 @@ interface LoginFormProps {
 
 export default function LoginForm({ accountType, authError }: LoginFormProps) {
   const [state, formAction, pending] = useActionState(login, initialState);
+  const submit = useActionFormSubmit(formAction);
   useActionRedirect(state.redirectTo);
 
   const label = ACCOUNT_TYPE_LABELS[accountType];
@@ -33,7 +35,7 @@ export default function LoginForm({ accountType, authError }: LoginFormProps) {
         Sign in to your {label.toLowerCase()} account on OpportunityHub.
       </p>
 
-      <form action={formAction} className="mt-6 space-y-4">
+      <form onSubmit={submit} className="mt-6 space-y-4">
         <input type="hidden" name="account_type" value={accountType} />
         <FormMessage error={authError ?? state.error} />
 

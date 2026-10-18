@@ -4,7 +4,7 @@ import { cache } from "react";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { hasSupabaseEnv } from "@/lib/env";
+import { describeSupabaseEnvProblem, hasSupabaseEnv } from "@/lib/env";
 import {
   dashboardPathFor,
   loginPathFor,
@@ -77,6 +77,7 @@ export async function signup(
   if (!hasSupabaseEnv()) {
     return {
       error:
+        describeSupabaseEnvProblem() ??
         "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local.",
     };
   }
@@ -166,6 +167,7 @@ export async function signup(
       email,
       password,
       options: {
+        emailRedirectTo: `${authRedirectOrigin()}/auth/callback`,
         data: {
           account_type: accountType,
           organization_name: organizationName ?? undefined,
@@ -288,6 +290,7 @@ export async function login(
   if (!hasSupabaseEnv()) {
     return {
       error:
+        describeSupabaseEnvProblem() ??
         "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local.",
     };
   }
@@ -444,6 +447,7 @@ export async function requestPasswordReset(
   if (!hasSupabaseEnv()) {
     return {
       error:
+        describeSupabaseEnvProblem() ??
         "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local.",
     };
   }
@@ -502,6 +506,7 @@ export async function updatePassword(
   if (!hasSupabaseEnv()) {
     return {
       error:
+        describeSupabaseEnvProblem() ??
         "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local.",
     };
   }

@@ -55,8 +55,9 @@ cp .env.local.example .env.local
    - `supabase/migration-discovery-verification-system.sql`
    - `supabase/migration-security-hardening.sql`
    - `supabase/migration-publisher-workflows.sql`
+   - `supabase/migration-ai-enrichment-authorization.sql` (existing databases only; new installs already include it)
 
-   Run `setup-all.sql` first. It creates the base schema and seed data. Then run the three migrations in the order listed above. See `supabase/README.md` for the complete setup process.
+   Run `setup-all.sql` first. It creates the base schema and seed data. Then run the migrations in the order listed above. See `supabase/README.md` for the complete setup process.
 4. **Authentication → Providers → Email** — turn off **Confirm email** for easier local testing
 
 ### 3. Run
@@ -90,6 +91,21 @@ Open [http://localhost:3000](http://localhost:3000)
 5. Click **Refresh with AI (latest)** only when you want to re-fetch the registration page and update
 
 Without Gemini, suggestions use simple rules and opportunity pages show only seed/description data.
+
+### 4a. "This page couldn't load" after setup
+
+If every page that reads the database returns a server error, the app is running
+without usable Supabase credentials. Placeholder values (`REPLACE_WITH…`,
+`your-anon-key`, empty) are detected at startup and the exact variable is named
+in the server log. Fix `.env.local`:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon / publishable key>   # NOT the secret key
+```
+
+Then restart the dev server (`NEXT_PUBLIC_*` values are read at start-up).
+Run `supabase/README.md` in order if the tables are also missing.
 
 ### 5. Troubleshooting Gemini
 
@@ -226,6 +242,7 @@ supabase/
   migration-discovery-verification-system.sql  Administrator and discovery system
   migration-security-hardening.sql           Database privacy protections
   migration-publisher-workflows.sql          Publisher and listing review workflow
+  migration-ai-enrichment-authorization.sql  Ownership check for AI enrichment writes
 ```
 
 ## Scripts
@@ -269,7 +286,7 @@ The app code is ready when `npm run build` passes. You still need to configure s
 ### 1. Supabase
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. **SQL Editor → Run** `supabase/setup-all.sql`, then in order run `migration-discovery-verification-system.sql`, `migration-security-hardening.sql`, and `migration-publisher-workflows.sql`.
+2. **SQL Editor → Run** `supabase/setup-all.sql`, then in order run `migration-discovery-verification-system.sql`, `migration-security-hardening.sql`, and `migration-publisher-workflows.sql`. Existing databases should also run `migration-ai-enrichment-authorization.sql`.
 3. **Authentication → URL configuration:** set Site URL and add `https://<your-domain>/auth/callback` (and localhost for dev).
 4. **Authentication → Email:** disable **Confirm email** for local dev, or configure **SMTP** (e.g. Resend) for production.
 5. Copy **Project URL**, **anon key**, and (for crons) **service role key** into env.

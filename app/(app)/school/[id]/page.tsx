@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import PublisherPublicProfileView from "@/components/publishers/PublisherPublicProfile";
+import { getSavedOpportunityIds } from "@/lib/queries/opportunities";
 import {
   getFollowerCount,
   getOpportunitiesByPublisher,
@@ -33,10 +34,13 @@ export default async function SchoolPublicPage({ params }: SchoolPublicPageProps
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [opportunities, followerCount, following] = await Promise.all([
+  const [opportunities, followerCount, following, savedIds] = await Promise.all([
     getOpportunitiesByPublisher(id),
     getFollowerCount(id),
     isFollowingPublisher(id, user?.id ?? null),
+    // Without this the cards on the publisher page always render "Save", even
+    // for a visitor who already saved the listing.
+    getSavedOpportunityIds(),
   ]);
 
   return (
@@ -46,6 +50,7 @@ export default async function SchoolPublicPage({ params }: SchoolPublicPageProps
       followerCount={followerCount}
       isFollowing={following}
       currentUserId={user?.id ?? null}
+      savedIds={savedIds}
     />
   );
 }

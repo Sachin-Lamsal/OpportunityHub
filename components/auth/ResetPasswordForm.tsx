@@ -7,11 +7,13 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import FormMessage from "@/components/ui/FormMessage";
 import { Card } from "@/components/ui/Card";
+import { useActionFormSubmit } from "@/components/ui/useActionFormSubmit";
 
 const initialState: AuthState = {};
 
 export default function ResetPasswordForm() {
   const [state, formAction, pending] = useActionState(updatePassword, initialState);
+  const submit = useActionFormSubmit(formAction);
 
   return (
     <Card>
@@ -20,7 +22,7 @@ export default function ResetPasswordForm() {
         Pick something at least 8 characters long that you haven&apos;t used before.
       </p>
 
-      <form action={formAction} className="mt-6 space-y-4">
+      <form onSubmit={submit} className="mt-6 space-y-4">
         <FormMessage error={state.error} success={state.success} />
 
         <Input

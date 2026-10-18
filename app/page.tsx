@@ -65,7 +65,13 @@ const steps = [
 ];
 
 export default async function HomePage() {
-  const curated = await getCuratedOpportunitySections();
+  // The landing page is marketing content with an optional listing preview: a
+  // database outage (or an unconfigured Supabase) must not take the whole page
+  // down with it.
+  const curated = await getCuratedOpportunitySections().catch((error) => {
+    console.error("Home page: curated opportunities unavailable:", error);
+    return null;
+  });
 
   return (
     <>
@@ -102,28 +108,44 @@ export default async function HomePage() {
         </section>
 
         {/* Curated discovery preview */}
-        <section className="border-b border-slate-200 bg-slate-50/80 py-14 sm:py-16">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <div className="mb-8 text-center">
-              <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
-                Discover what students are applying to
-              </h2>
-              <p className="mt-2 text-slate-600">
-                Curated rows update from live saves and upcoming deadlines.
+        {curated ? (
+          <section className="border-b border-slate-200 bg-slate-50/80 py-14 sm:py-16">
+            <div className="mx-auto max-w-6xl px-4 sm:px-6">
+              <div className="mb-8 text-center">
+                <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+                  Discover what students are applying to
+                </h2>
+                <p className="mt-2 text-slate-600">
+                  Curated rows update from live saves and upcoming deadlines.
+                </p>
+              </div>
+              <CuratedOpportunitySections
+                deadlinesThisWeek={curated.deadlinesThisWeek}
+                popular={curated.popular}
+                featured={curated.featured}
+              />
+              <div className="mt-10 text-center">
+                <Button href="/opportunities" variant="outline" size="lg">
+                  Browse full catalog
+                </Button>
+              </div>
+            </div>
+          </section>
+        ) : (
+          <section className="border-b border-slate-200 bg-slate-50/80 py-10">
+            <div className="mx-auto max-w-6xl px-4 text-center sm:px-6">
+              <p className="text-sm text-slate-600">
+                Live listings are unavailable right now. Browsing may be
+                temporarily offline.
               </p>
+              <div className="mt-4">
+                <Button href="/opportunities" variant="outline" size="sm">
+                  Try the catalog
+                </Button>
+              </div>
             </div>
-            <CuratedOpportunitySections
-              deadlinesThisWeek={curated.deadlinesThisWeek}
-              popular={curated.popular}
-              featured={curated.featured}
-            />
-            <div className="mt-10 text-center">
-              <Button href="/opportunities" variant="outline" size="lg">
-                Browse full catalog
-              </Button>
-            </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* Features */}
         <section id="features" className="py-16 sm:py-20">

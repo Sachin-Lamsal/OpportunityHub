@@ -12,6 +12,7 @@ import {
 } from "@/lib/constants";
 import type { AccountType } from "@/lib/types";
 import { dashboardPathFor } from "@/lib/auth/account";
+import { activeNavHref } from "@/lib/nav";
 
 interface AppNavProps {
   accountType?: AccountType | null;
@@ -34,6 +35,7 @@ export default function AppNav({ accountType = "student", isLoggedIn = true }: A
   const [menuOpen, setMenuOpen] = useState(false);
   const links = navLinksFor(accountType, isLoggedIn);
   const homeHref = isLoggedIn && accountType ? dashboardPathFor(accountType) : "/";
+  const activeHref = activeNavHref(pathname, links, homeHref);
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -49,14 +51,13 @@ export default function AppNav({ accountType = "student", isLoggedIn = true }: A
 
         <nav className="hidden items-center gap-1 md:flex">
           {links.map((link) => {
-            const isActive =
-              pathname === link.href ||
-              (link.href !== homeHref && pathname.startsWith(link.href));
+            const isActive = activeHref === link.href;
 
             return (
               <Link
                 key={link.href}
                 href={link.href}
+                aria-current={isActive ? "page" : undefined}
                 className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-indigo-50 text-indigo-700"
@@ -92,6 +93,8 @@ export default function AppNav({ accountType = "student", isLoggedIn = true }: A
           className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 md:hidden"
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Toggle navigation menu"
+          aria-expanded={menuOpen}
+          aria-controls="app-nav-mobile-menu"
         >
           <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             {menuOpen ? (
@@ -104,17 +107,19 @@ export default function AppNav({ accountType = "student", isLoggedIn = true }: A
       </div>
 
       {menuOpen && (
-        <nav className="border-t border-slate-200 bg-white px-4 py-3 md:hidden">
+        <nav
+          id="app-nav-mobile-menu"
+          className="border-t border-slate-200 bg-white px-4 py-3 md:hidden"
+        >
           <ul className="flex flex-col gap-1">
             {links.map((link) => {
-              const isActive =
-                pathname === link.href ||
-                (link.href !== homeHref && pathname.startsWith(link.href));
+              const isActive = activeHref === link.href;
 
               return (
                 <li key={link.href}>
                   <Link
                     href={link.href}
+                    aria-current={isActive ? "page" : undefined}
                     onClick={() => setMenuOpen(false)}
                     className={`block rounded-lg px-3 py-2 text-sm font-medium ${
                       isActive

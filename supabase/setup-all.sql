@@ -545,6 +545,11 @@ $$;
 grant execute on function public.verify_opportunity(uuid) to authenticated;
 grant execute on function public.reject_opportunity(uuid) to authenticated;
 
+-- SECURITY: SECURITY DEFINER bypasses RLS. AI-derived narrative may be written
+-- by any signed-in user (the "Generate AI details" feature); publisher-owned
+-- facts may only be written by the publisher who created the listing (or an
+-- administrator). Migration-ai-enrichment-authorization.sql contains the same
+-- definition for databases created before this hardening.
 create or replace function public.save_opportunity_ai_enrichment(
   opp_id uuid,
   patch jsonb
@@ -578,7 +583,24 @@ declare
     'skills_gained',
     'difficulty_level'
   ];
+  -- Columns that describe the listing itself. Only the publisher who created
+  -- the listing (or an administrator) may change them.
+  owner_only text[] := array[
+    'contact_info',
+    'source_url',
+    'tags',
+    'deadline',
+    'start_date',
+    'end_date',
+    'cost',
+    'time_commitment',
+    'location',
+    'grade_requirements',
+    'skills_gained',
+    'difficulty_level'
+  ];
   key_allowed boolean;
+  is_owner boolean;
 begin
   if uid is null then
     raise exception 'Not authenticated';
@@ -593,11 +615,21 @@ begin
     return false;
   end if;
 
+  is_owner := (o.created_by is not null and o.created_by = uid)
+              or public.is_admin(uid);
+
   for k in select jsonb_object_keys(patch)
   loop
     key_allowed := k = any(allowed);
     if not key_allowed then
       continue;
+    end if;
+
+    -- AI-derived narrative stays open to any signed-in user; publisher facts
+    -- require ownership. Rows with a NULL created_by have no owner, so only an
+    -- administrator may change their facts.
+    if k = any(owner_only) and not is_owner then
+      raise exception 'Only the publisher who created this listing can change %', k;
     end if;
 
     case k
@@ -672,7 +704,8 @@ begin
 end;
 $$;
 
-grant execute on function public.save_opportunity_ai_enrichment(uuid, jsonb) to authenticated;
+revoke execute on function public.save_opportunity_ai_enrichment(uuid, jsonb) from public;
+grant execute on function public.save_opportunity_ai_enrichment(uuid, jsonb) to authenticated, service_role;
 
 drop policy if exists "Creators can delete opportunities" on public.opportunities;
 create policy "Creators can delete opportunities"

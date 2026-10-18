@@ -42,9 +42,24 @@ function isAuthRoute(pathname: string): boolean {
   );
 }
 
-export async function updateSession(request: NextRequest) {
-  if (!hasSupabaseEnv()) {
+function routeForSignedOutVisitor(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  if (isPublicRoute(pathname) || isAuthRoute(pathname)) {
     return NextResponse.next({ request });
+  }
+
+  const url = request.nextUrl.clone();
+  url.pathname = "/login";
+  return NextResponse.redirect(url);
+}
+
+export async function updateSession(request: NextRequest) {
+  // With no usable Supabase configuration there is no session to read, but the
+  // route rules below must still run: treating the visitor as signed out keeps
+  // protected pages redirecting to /login instead of rendering.
+  if (!hasSupabaseEnv()) {
+    return routeForSignedOutVisitor(request);
   }
 
   let supabaseResponse = NextResponse.next({ request });

@@ -480,3 +480,191 @@ delete are scoped by `.eq("created_by", user.id)`), `onboarding.ts`,
   fixed (4 SSRF sinks, enumeration). No live Brevo/Gemini/Supabase verification.
 - **RLS policy execution**: reviewed statically (all 17 tables have RLS
   enabled); NOT executed against a live database.
+
+---
+
+## Cycle 4 — Comprehensive functional QA (2026-10-17)
+
+Work performed on branch `pathced-notes` with three independent review cycles.
+Baseline before this cycle: `npm test` 70 passing, `tsc --noEmit` clean,
+`npm run lint` clean, `npm run build` green — i.e. every defect below existed
+behind a green build.
+
+### OH-201 — Any signed-in user could rewrite any listing's publisher facts (CRITICAL)
+- **Severity:** Critical · **Status:** Fixed (app + SQL) · **Verified:** browser + unit tests
+- **Location:** `lib/actions/opportunity-enrich.ts`, `supabase/setup-all.sql:548`
+- **Repro:** `save_opportunity_ai_enrichment` is `SECURITY DEFINER`, so it runs
+  with the table owner's rights and bypasses RLS. Its only guard was
+  `auth.uid() is not null`. Any signed-in student could call the server action
+  with any opportunity id and overwrite `source_url`, `contact_info`, `tags`,
+  `deadline`, `cost`, `location` … on any listing, including other publishers'
+  drafts. `source_url` was additionally overwritten with `registration_link` on
+  every enrichment, contradicting the "only fill gaps" comment directly above it.
+- **Root cause:** the authorization boundary lived in SQL as "is this user
+  signed in", and the app sent publisher-owned columns unconditionally.
+- **Fix:** new pure policy module `lib/opportunities/enrichment-policy.ts`.
+  AI-derived narrative is writable by any signed-in user (documented feature);
+  publisher facts only by the listing owner and only when currently empty;
+  `source_url` is never written from enrichment. SQL: the guarded definition is
+  now the one in `setup-all.sql`, plus `supabase/migration-ai-enrichment-authorization.sql`
+  for existing databases.
+- **Regression tests:** `tests/opportunities/enrichment-authorization.test.ts`
+  (10 assertions; verified to fail when the ownership guard is removed).
+
+### OH-202 — Publisher listing edit was reachable with a NULL owner (High)
+- **Severity:** High · **Status:** Fixed
+- **Location:** `app/(app)/opportunities/[id]/edit/page.tsx:34`
+- **Repro:** the guard was `if (opportunity.created_by && created_by !== profile.id)`.
+  Seed/legacy rows have `created_by = NULL`, so the check passed and any school
+  or organization that opened the URL got a full, editable listing form.
+- **Fix:** ownership is now enforced inside the query
+  (`lib/queries/opportunities.ts::getOpportunityForOwnerEdit`, `.eq("created_by", userId)`),
+  which also restores the admin `review_note` the page needs but never received
+  (`getOpportunityById` strips it).
+- **Verified:** browser — a student requesting another publisher's edit URL gets
+  the not-found page; the owner still edits and saves normally.
+
+### OH-203 — Community comments and reviews never rendered (High)
+- **Severity:** High · **Status:** Fixed
+- **Location:** `lib/queries/community.ts`
+- **Repro:** both queries embedded `profiles (account_type, organization_name)`
+  on rows whose `user_id` references `auth.users`, not `public.profiles`.
+  PostgREST has no foreign key to follow, so the query failed, the error was
+  swallowed into `return []`, and the section always rendered "No questions or
+  discussions yet" — even though rows existed. Confirmed against the live
+  database: the row was written, the page still showed the empty state.
+- **Fix:** fetch authors in a second RLS-limited query and join in memory; an
+  unreadable profile leaves the author anonymous instead of hiding the thread.
+- **Regression:** verified in the browser — post, list and delete now work.
+
+### OH-204 — "Comment posted!" with nothing appearing (High)
+- **Severity:** High · **Status:** Fixed
+- **Location:** `components/community/CommunitySection.tsx`
+- **Repro:** the message state was written to a discarded setter
+  (`const [, setCommentMsg] = useState(...)`) so *no* feedback ever rendered, and
+  the rendered lists come from server props that were not refreshed after the
+  mutation. Browser run: the action returned "Comment posted!", the thread was
+  unchanged.
+- **Fix:** render the feedback (error and success) with `FormMessage` and call
+  `router.refresh()` after a successful post, delete and review — the pattern
+  the admin review components already used.
+
+### OH-205 — React 19 wiped every form the moment it was submitted (High)
+- **Severity:** High · **Status:** Fixed
+- **Location:** nine components using `<form action={formAction}>`
+- **Repro:** React 19 calls `requestFormReset(formFiber)` *before* running the
+  action (`node_modules/react-dom/cjs/react-dom-client.development.js:8955`), so
+  uncontrolled inputs reverted to `defaultValue` regardless of the outcome. A
+  publisher who hit "Submit for review" without a source link lost the whole
+  description; a student retried their password from scratch.
+- **Fix:** new `components/ui/useActionFormSubmit.ts` submits the
+  `useActionState` action from an `onSubmit` handler inside `startTransition`
+  (React's documented alternative, react-dom:8430), forwarding the submitter's
+  `name`/`value` so `submission_intent` still works.
+- **Verified in the browser:** the publisher listing form and the signup form
+  both keep every field after a failed submit.
+
+### OH-206 — Moderators could reach the whole admin console and silently no-op (High)
+- **Severity:** High · **Status:** Fixed
+- **Location:** `app/admin/layout.tsx`, `lib/actions/discovery.ts` (5 actions)
+- **Repro:** the gate was "a row exists in `admin_roles`", which also accepts
+  `role = 'moderator'`. The database restricts those writes with `is_admin()`
+  (admin/superadmin), so `rejectCandidate` returned `success: true` while both
+  updates matched zero rows.
+- **Fix:** one role-scoped helper `lib/auth/admin.ts::getCurrentAdmin`, used by
+  the layout and every discovery action. `approveCandidate`/`rejectCandidate`
+  now inspect update results; a partial failure still writes the audit event and
+  revalidates, then reports what failed.
+- **Note:** moderators consequently lose `/admin` (deliberate — there is no
+  moderator UI, and the DB never granted them these writes).
+
+### OH-207 — Invite redemption was unchecked (High)
+- **Severity:** High · **Status:** Fixed
+- **Location:** `lib/actions/school-invites.ts::applyPendingSchoolInviteForUser`
+- **Repro:** three fire-and-forget writes. A `redeem_school_invite` that returned
+  `false` still linked the student, and a failed profile update still cleared
+  the pending code, so the invite was consumed with nothing gained.
+- **Fix:** the checked `redeemSchoolInvite()` helper gates the link, the pending
+  code is cleared only after a successful redemption (otherwise every later
+  login would burn another use), and link failures are logged server-side.
+
+### OH-208 — "Success" reported for writes that never happened (Medium)
+- **Severity:** Medium · **Status:** Fixed
+- **Locations:** `lib/actions/community.ts::toggleFollowOrganization`,
+  `lib/actions/school-invites.ts::deactivateSchoolInvite`,
+  `lib/actions/discovery.ts`
+- **Repro:** PostgREST returns `{ data: null, error: null }` when a filter matches
+  nothing, so a failed follow insert or a deactivate of a non-existent invite
+  reported success and the UI showed "Following" / "Invite deactivated."
+- **Fix:** `.select(...)` where the affected rows are needed, and explicit error
+  returns. Dead action `deactivateSchoolInviteFromForm` (a publicly addressable
+  endpoint that discarded its result and had no callers) removed.
+
+### OH-209 — AI credits were not charged for successful model fallbacks (Medium)
+- **Severity:** Medium · **Status:** Fixed
+- **Location:** `lib/ai/usage.ts::generateWithUserQuota`
+- **Repro:** when the premium model failed, the code *read* the standard tier's
+  remaining credits (no reservation), called the fallback, then refunded the
+  premium credit — never incrementing standard. Every successful fallback call
+  was free and unbounded.
+- **Fix:** `reserveTierCreditForTier()` reserves the fallback tier atomically,
+  the primary reservation is refunded first (so the user never holds two credits
+  for one request), and the charge/refund decision is the pure, unit-tested
+  `decideFallbackAccounting()`.
+- **Tests:** `tests/ai/quota-accounting.test.ts` (replaces a simulation-only
+  suite). Verified to fail when the old rule is restored.
+
+### OH-210 — Filters, navigation and review controls drifted from their state (Medium)
+- **Severity:** Medium · **Status:** Fixed
+- **Locations:** `components/opportunities/OpportunityFilters.tsx`,
+  `components/layout/AppNav.tsx`, `components/layout/Header.tsx`,
+  `components/admin/*ReviewActions.tsx`
+- **Repro:** the filter form was uncontrolled, so "Clear all" and browser
+  Back/Forward cleared the URL while the controls still showed the old values;
+  publisher nav highlighted "Add opportunity" *and* "Browse" at once; the public
+  header linked to `#features`/`#how-it-works` fragments that only exist on `/`;
+  both admin review cards reused one textarea id, so a note typed on the second
+  card belonged to the first.
+- **Fix:** pure helpers `lib/opportunities/filters.ts` and `lib/nav.ts`, a
+  single active-nav rule (longest prefix wins, `aria-current="page"`), `/#…`
+  fragment links, per-card ids, `aria-expanded`/`aria-controls` on both mobile
+  menus, and server/client agreement on "is a filter active".
+- **Tests:** `tests/ui/filters-and-nav.test.ts` (16 assertions).
+
+### OH-211 — Placeholder credentials were treated as configured (Medium)
+- **Severity:** Medium · **Status:** Fixed
+- **Location:** `lib/env.ts`, `lib/supabase/server.ts`, `lib/supabase/middleware.ts`
+- **Repro:** the project's `.env.local` contains
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY=REPLACE_WITH…`. `hasSupabaseEnv()` only checked
+  for a non-empty string, so every query failed with `401 Invalid API key` while
+  the UI claimed "No opportunities yet. Complete the database setup…".
+- **Fix:** placeholder values are now detected, the failing variable is named,
+  the proxy keeps treating visitors as signed out, `(app)`/`admin` layouts are
+  forced dynamic, and the landing page degrades gracefully.
+- **Tests:** `tests/config/env-config.test.ts`.
+- **Still required from the operator:** put a real anon/publishable key in
+  `.env.local` (see Remaining Risks).
+
+### OH-212 — Smaller defects fixed in the same pass
+- **Status:** Fixed · **Severity:** Low/Medium
+- `submitReview` used `maybeSingle()` on activities, so a student who logged the
+  same opportunity twice silently lost the verified-participant badge → `.limit(1)`.
+- Duplicate `DOM id`s on review textareas (see OH-210).
+- Hardcoded "10 AI talks" in three places → derived from the configured limits.
+- `AITokenBadge` fetched usage without a `.catch()` → unhandled rejection.
+- Publisher public pages always rendered Save buttons as unsaved
+  (`savedIds={new Set()}`) → the viewer's saved ids are now passed through.
+- School dashboard heading claimed "published" for an unfiltered list → renamed.
+- Ingestion review form said "Publish to Catalog" while the row is inserted as
+  `pending_review`; `tags` persisted as `[""]`; three handlers had no `catch`;
+  "Cancel" left the extracted preview and messages on screen.
+- Signup enforced `minLength={6}` client-side while the server requires 8
+  characters plus complexity → the client rule now matches the server.
+- `tests/opportunities/internal-notes.test.ts` re-implemented the redaction helper
+  instead of importing it; both it and the AI-quota suite now exercise production
+  code (`lib/opportunities/internal-notes.ts`, `lib/ai/quota-core.ts`).
+
+### Verified with a real browser and the live Supabase project
+Test accounts (`qa-2026-10-17-*:@example.test`) were created, used, and deleted
+again; the database was returned to its original state (64 opportunities, 0
+profiles/activities/comments). See the delivery report for the journey matrix.

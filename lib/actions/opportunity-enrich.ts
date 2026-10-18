@@ -10,6 +10,10 @@ import {
 } from "@/lib/ai/enrich-opportunity";
 import { generateWithUserQuota } from "@/lib/ai/usage";
 import { getOpportunityById } from "@/lib/queries/opportunities";
+import {
+  buildEnrichmentPatch,
+  isOpportunityOwner,
+} from "@/lib/opportunities/enrichment-policy";
 
 export interface EnrichState {
   error?: string;
@@ -57,9 +61,7 @@ export async function enrichOpportunityWithAI(
   }
 
   let webText: string | null = null;
-  if (forceRefresh && opportunity.registration_link) {
-    webText = await fetchPageText(opportunity.registration_link);
-  } else if (!opportunity.ai_enriched_at && opportunity.registration_link) {
+  if (opportunity.registration_link && (forceRefresh || !opportunity.ai_enriched_at)) {
     webText = await fetchPageText(opportunity.registration_link);
   }
 
@@ -86,46 +88,38 @@ export async function enrichOpportunityWithAI(
 
   const now = new Date().toISOString();
 
-  const updatePayload: Record<string, unknown> = {
-    ai_summary: enrichment.ai_summary,
-    prep_resources: enrichment.prep_resources,
-    application_steps: enrichment.application_steps,
-    eligibility_details: enrichment.eligibility_details,
-    contact_info: enrichment.contact_info,
-    portfolio_tips: enrichment.portfolio_tips,
-    ai_enriched_at: now,
-    source_url: opportunity.registration_link,
-    tags: enrichment.tags.length > 0 ? enrichment.tags : opportunity.tags,
-  };
+  // `save_opportunity_ai_enrichment` is SECURITY DEFINER and bypasses RLS, so
+  // this action is the only authorization boundary. AI-derived narrative is
+  // written for any signed-in user (the documented per-opportunity AI detail
+  // feature); publisher facts are only written by the listing owner, and only
+  // when currently empty.
+  const isOwner = isOpportunityOwner(opportunity, user.id);
 
-  // Only fill gaps — never overwrite trusted seed/database facts with AI guesses
-  if (enrichment.deadline && !opportunity.deadline) {
-    updatePayload.deadline = enrichment.deadline;
-  }
-  if (enrichment.start_date && !opportunity.start_date) {
-    updatePayload.start_date = enrichment.start_date;
-  }
-  if (enrichment.end_date && !opportunity.end_date) {
-    updatePayload.end_date = enrichment.end_date;
-  }
-  if (enrichment.cost && !opportunity.cost) {
-    updatePayload.cost = enrichment.cost;
-  }
-  if (enrichment.time_commitment && !opportunity.time_commitment) {
-    updatePayload.time_commitment = enrichment.time_commitment;
-  }
-  if (enrichment.location && !opportunity.location) {
-    updatePayload.location = enrichment.location;
-  }
-  if (enrichment.grade_requirements && !opportunity.grade_requirements) {
-    updatePayload.grade_requirements = enrichment.grade_requirements;
-  }
-  if (enrichment.skills_gained && !opportunity.skills_gained) {
-    updatePayload.skills_gained = enrichment.skills_gained;
-  }
-  if (enrichment.difficulty_level && !opportunity.difficulty_level) {
-    updatePayload.difficulty_level = enrichment.difficulty_level;
-  }
+  const updatePayload = buildEnrichmentPatch({
+    narrative: {
+      ai_summary: enrichment.ai_summary,
+      prep_resources: enrichment.prep_resources,
+      application_steps: enrichment.application_steps,
+      eligibility_details: enrichment.eligibility_details,
+      portfolio_tips: enrichment.portfolio_tips,
+    },
+    facts: {
+      deadline: enrichment.deadline,
+      start_date: enrichment.start_date,
+      end_date: enrichment.end_date,
+      cost: enrichment.cost,
+      time_commitment: enrichment.time_commitment,
+      location: enrichment.location,
+      grade_requirements: enrichment.grade_requirements,
+      skills_gained: enrichment.skills_gained,
+      difficulty_level: enrichment.difficulty_level,
+      tags: enrichment.tags,
+      contact_info: enrichment.contact_info,
+    },
+    existing: opportunity,
+    isOwner,
+    enrichedAt: now,
+  });
 
   const { error } = await supabase.rpc("save_opportunity_ai_enrichment", {
     opp_id: opportunityId,

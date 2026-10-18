@@ -100,7 +100,7 @@ export default async function SchoolDashboardPage() {
         <section>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-              Your published opportunities
+              Your listings (drafts, in review and published)
             </h2>
             <div className="flex items-center gap-2">
               <Button href="/opportunities/ingest" variant="outline" size="sm">

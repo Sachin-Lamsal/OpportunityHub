@@ -15,6 +15,7 @@ import Select from "@/components/ui/Select";
 import Textarea from "@/components/ui/Textarea";
 import FormMessage from "@/components/ui/FormMessage";
 import { Card } from "@/components/ui/Card";
+import { useActionFormSubmit } from "@/components/ui/useActionFormSubmit";
 
 const initialState: AuthState = {};
 
@@ -31,6 +32,8 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
     linkSchoolToStudent,
     initialState,
   );
+  const submit = useActionFormSubmit(formAction);
+  const submitLink = useActionFormSubmit(linkFormAction);
 
   return (
     <div className="space-y-6">
@@ -76,7 +79,7 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
             Enter your school code or an invite code to connect with your school counselor.
           </p>
 
-          <form action={linkFormAction} className="mt-4 space-y-4">
+          <form onSubmit={submitLink} className="mt-4 space-y-4">
             <FormMessage error={linkState.error} success={linkState.success} />
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -107,7 +110,7 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
           Update your details anytime. More fields can be filled in after signup.
         </p>
 
-        <form action={formAction} className="mt-6 space-y-4">
+        <form onSubmit={submit} className="mt-6 space-y-4">
           <FormMessage error={state.error} success={state.success} />
 
           <Select

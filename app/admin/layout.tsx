@@ -1,33 +1,26 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentAdmin } from "@/lib/auth/admin";
 
 export const metadata = {
   title: "Admin",
 };
+
+// Admin pages read the signed-in administrator from the database on every
+// request; they must never be prerendered.
+export const dynamic = "force-dynamic";
 
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
+  // One call resolves both "is this an administrator?" and "who is signed in?".
+  const admin = await getCurrentAdmin();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const { data: adminRole } = await supabase
-    .from("admin_roles")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (!adminRole) {
+  if (!admin) {
+    // Signed-out callers never reach this layout (the proxy redirects /admin),
+    // so an absent admin record means "not an administrator".
     redirect("/");
   }
 
@@ -44,7 +37,7 @@ export default async function AdminLayout({
               <Link href="/admin/publisher-review" className="font-medium text-indigo-600 hover:text-indigo-700">
                 Publisher review
               </Link>
-              <span className="text-slate-600">{user.email}</span>
+              <span className="text-slate-600">{admin.email}</span>
             </div>
           </div>
         </div>

@@ -8,7 +8,22 @@ export default function AITokenBadge() {
   const [usage, setUsage] = useState<AiUsageSummary | null>(null);
 
   useEffect(() => {
-    getAIUsageSummary().then(setUsage);
+    let active = true;
+
+    // A rejected call (expired session, database error) must not surface as an
+    // unhandled rejection; the badge simply stays hidden, exactly as it does
+    // when no AI usage row exists yet.
+    getAIUsageSummary()
+      .then((summary) => {
+        if (active) setUsage(summary);
+      })
+      .catch(() => {
+        if (active) setUsage(null);
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   if (!usage) return null;
@@ -62,7 +77,7 @@ export default function AITokenBadge() {
 
       <p className="mt-2 text-[11px] text-slate-500 leading-normal border-t border-slate-100 pt-2">
         {isExhausted
-          ? "All 10 monthly AI talks used. Offline rule-based guidance is active. Talks reset on the 1st."
+          ? `All ${usage.totalLimit} monthly AI talks used. Offline rule-based guidance is active. Talks reset on the 1st.`
           : `Active: ${usage.activeTierLabel}. When exhausted, system falls back to offline portfolio suggestions.`}
       </p>
     </div>

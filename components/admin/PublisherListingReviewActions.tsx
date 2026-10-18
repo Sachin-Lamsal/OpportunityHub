@@ -10,6 +10,10 @@ export default function PublisherListingReviewActions({
 }: {
   opportunityId: string;
 }) {
+  // One of these components is rendered per pending listing, so the id must be
+  // unique per card: a shared id made every label focus (and read out) the
+  // first textarea on the page.
+  const noteFieldId = `listing-review-note-${opportunityId}`;
   const [notes, setNotes] = useState("");
   const [message, setMessage] = useState<{ text: string; tone: "error" | "success" } | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -35,11 +39,11 @@ export default function PublisherListingReviewActions({
 
   return (
     <div className="space-y-3">
-      <label htmlFor="listing-review-note" className="block text-sm font-medium text-slate-700">
+      <label htmlFor={noteFieldId} className="block text-sm font-medium text-slate-700">
         Review note (optional)
       </label>
       <textarea
-        id="listing-review-note"
+        id={noteFieldId}
         value={notes}
         onChange={(event) => setNotes(event.target.value)}
         rows={3}

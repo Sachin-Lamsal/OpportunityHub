@@ -1,26 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import type { Opportunity } from "@/lib/types";
+import { withoutInternalNotes } from "@/lib/opportunities/internal-notes";
 
 /**
- * The admin review note is written for the owning publisher only. Public
- * browse and detail queries select `*`, so the note must be stripped before
- * the row is handed to a public page.
- *
- * This mirrors `withoutInternalNotes` in lib/queries/opportunities.ts. If the
- * helper changes, update this alongside it.
+ * The admin review note is written for the owning publisher only. Public browse
+ * and detail queries select `*`, so the note must be stripped before the row is
+ * handed to a public page. This suite imports the production helper directly, so
+ * a change to the redaction is caught here.
  */
-function withoutInternalNotes(rows: unknown[]): Opportunity[] {
-  return rows.map((row) => {
-    if (!row || typeof row !== "object") return row as Opportunity;
-    const { review_note: _note, ...rest } = row as Opportunity & {
-      review_note?: string | null;
-    };
-    return rest as Opportunity;
-  });
-}
-
 test("admin review notes are removed from public rows", () => {
   const [stripped] = withoutInternalNotes([
     {

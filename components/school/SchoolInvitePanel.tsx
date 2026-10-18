@@ -11,6 +11,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import FormMessage from "@/components/ui/FormMessage";
 import { Card } from "@/components/ui/Card";
+import { useActionFormSubmit } from "@/components/ui/useActionFormSubmit";
 
 const initialState: InviteActionState = {};
 
@@ -34,6 +35,7 @@ export default function SchoolInvitePanel({ invites }: SchoolInvitePanelProps) {
   );
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const submit = useActionFormSubmit(formAction);
   const [isDeactivating, startDeactivateTransition] = useTransition();
 
   const handleDeactivate = (inviteId: string) => {
@@ -60,7 +62,7 @@ export default function SchoolInvitePanel({ invites }: SchoolInvitePanelProps) {
         on. Each code can be limited to a number of uses.
       </p>
 
-      <form action={formAction} className="mt-6 space-y-4 border-b border-slate-100 pb-6">
+      <form onSubmit={submit} className="mt-6 space-y-4 border-b border-slate-100 pb-6">
         <FormMessage error={state.error} success={state.success} />
 
         <div className="grid gap-4 sm:grid-cols-2">

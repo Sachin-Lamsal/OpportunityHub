@@ -13,6 +13,8 @@ interface PublisherPublicProfileProps {
   followerCount: number;
   isFollowing: boolean;
   currentUserId: string | null;
+  /** Opportunities the viewer already saved, so their Save buttons are honest. */
+  savedIds: Set<string>;
 }
 
 export default function PublisherPublicProfileView({
@@ -21,6 +23,7 @@ export default function PublisherPublicProfileView({
   followerCount,
   isFollowing,
   currentUserId,
+  savedIds,
 }: PublisherPublicProfileProps) {
   const isSchool = profile.account_type === "school";
   const displayName =
@@ -156,14 +159,14 @@ export default function PublisherPublicProfileView({
           <h2 className="mb-4 text-xl font-bold text-slate-900">Current opportunities</h2>
           <OpportunityList
             opportunities={currentOpportunities}
-            savedIds={new Set()}
+            savedIds={savedIds}
             emptyMessage="This publisher has no current opportunities."
           />
         </section>
         {previousOpportunities.length > 0 ? (
           <section>
             <h2 className="mb-4 text-xl font-bold text-slate-900">Previous opportunities</h2>
-            <OpportunityList opportunities={previousOpportunities} savedIds={new Set()} />
+            <OpportunityList opportunities={previousOpportunities} savedIds={savedIds} />
           </section>
         ) : null}
       </div>

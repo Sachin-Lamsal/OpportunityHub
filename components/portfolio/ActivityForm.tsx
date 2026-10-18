@@ -11,6 +11,7 @@ import Select from "@/components/ui/Select";
 import Textarea from "@/components/ui/Textarea";
 import FormMessage from "@/components/ui/FormMessage";
 import { Card } from "@/components/ui/Card";
+import { useActionFormSubmit } from "@/components/ui/useActionFormSubmit";
 
 const initialState: ActivityState = {};
 
@@ -35,6 +36,7 @@ export default function ActivityForm({
   availableOpportunities = [],
 }: ActivityFormProps) {
   const [state, formAction, pending] = useActionState(createActivity, initialState);
+  const submit = useActionFormSubmit(formAction);
   useActionRedirect(state.redirectTo);
 
   const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(
@@ -134,7 +136,7 @@ export default function ActivityForm({
         </div>
       )}
 
-      <form action={formAction} className="mt-6 space-y-4">
+      <form onSubmit={submit} className="mt-6 space-y-4">
         <FormMessage error={state.error} success={state.success} />
 
         {selectedOpp && (
