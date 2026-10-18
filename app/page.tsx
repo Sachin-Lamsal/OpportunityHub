@@ -1,5 +1,6 @@
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import { connection } from "next/server";
 import Button from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import HomeHeroSearch from "@/components/home/HomeHeroSearch";
@@ -65,6 +66,10 @@ const steps = [
 ];
 
 export default async function HomePage() {
+  // Curated opportunity data uses the server Supabase client, which reads the
+  // visitor's session cookie. Wait for the request before running that query.
+  await connection();
+
   // The landing page is marketing content with an optional listing preview: a
   // database outage (or an unconfigured Supabase) must not take the whole page
   // down with it.
