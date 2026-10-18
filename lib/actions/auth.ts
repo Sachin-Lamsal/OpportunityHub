@@ -167,6 +167,7 @@ export async function signup(
       email,
       password,
       options: {
+        emailRedirectTo: `${authRedirectOrigin()}/auth/callback`,
         data: {
           account_type: accountType,
           organization_name: organizationName ?? undefined,
