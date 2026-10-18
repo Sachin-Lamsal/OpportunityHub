@@ -1,6 +1,28 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+function getMetadataBase(): URL {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (configured) {
+    try {
+      return new URL(configured);
+    } catch {
+      // Ignore invalid URL and fall back
+    }
+  }
+
+  const vercelUrl = process.env.VERCEL_URL?.trim();
+  if (vercelUrl) {
+    try {
+      return new URL(`https://${vercelUrl}`);
+    } catch {
+      // Fall through
+    }
+  }
+
+  return new URL("http://localhost:3000");
+}
+
 export const metadata: Metadata = {
   title: {
     default: "OpportunityHub",
@@ -8,9 +30,7 @@ export const metadata: Metadata = {
   },
   description:
     "Discover opportunities, track activities, and build your university portfolio — for secondary school students in Kathmandu.",
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
-  ),
+  metadataBase: getMetadataBase(),
 };
 
 export const viewport = {
