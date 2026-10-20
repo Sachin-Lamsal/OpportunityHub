@@ -3,16 +3,13 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Button from "@/components/ui/Button";
-import type { AccountType } from "@/lib/types";
 
 interface GmailSignupButtonProps {
-  accountType: AccountType;
   variant?: "primary" | "outline";
   size?: "sm" | "md" | "lg";
 }
 
 export default function GmailSignupButton({
-  accountType,
   variant = "primary",
   size = "md",
 }: GmailSignupButtonProps) {
@@ -38,8 +35,6 @@ export default function GmailSignupButton({
           queryParams: {
             access_type: "offline",
             prompt: "consent",
-            // Pass account type through state
-            state: JSON.stringify({ accountType }),
           },
         },
       });

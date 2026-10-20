@@ -41,7 +41,7 @@ export default function LoginForm({ accountType, authError }: LoginFormProps) {
 
         {/* Gmail Login Button */}
         <div className="mb-6">
-          <GmailSignupButton accountType={accountType} />
+          <GmailSignupButton />
           <div className="relative mt-4">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-slate-300"></div>
