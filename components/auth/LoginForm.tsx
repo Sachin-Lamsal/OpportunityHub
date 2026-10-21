@@ -19,9 +19,10 @@ const initialState: AuthState = {};
 interface LoginFormProps {
   accountType: AccountType;
   authError?: string;
+  authSuccess?: string;
 }
 
-export default function LoginForm({ accountType, authError }: LoginFormProps) {
+export default function LoginForm({ accountType, authError, authSuccess }: LoginFormProps) {
   const [state, formAction, pending] = useActionState(login, initialState);
   const submit = useActionFormSubmit(formAction);
   useActionRedirect(state.redirectTo);
@@ -37,7 +38,7 @@ export default function LoginForm({ accountType, authError }: LoginFormProps) {
 
       <form onSubmit={submit} className="mt-6 space-y-4">
         <input type="hidden" name="account_type" value={accountType} />
-        <FormMessage error={authError ?? state.error} />
+        <FormMessage error={authError ?? state.error} success={authSuccess ?? state.success} />
 
         {/* Gmail Login Button */}
         <div className="mb-6">

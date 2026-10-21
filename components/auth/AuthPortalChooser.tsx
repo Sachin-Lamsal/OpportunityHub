@@ -5,6 +5,7 @@ import { LOGIN_PORTAL_CARDS } from "@/lib/constants";
 interface AuthPortalChooserProps {
   mode: "login" | "signup";
   error?: string;
+  verified?: boolean;
 }
 
 const accentClasses = {
@@ -20,7 +21,7 @@ const ERROR_MESSAGES: Record<string, string> = {
     "Google sign-in failed. Please try again.",
 };
 
-export default function AuthPortalChooser({ mode, error }: AuthPortalChooserProps) {
+export default function AuthPortalChooser({ mode, error, verified }: AuthPortalChooserProps) {
   const isLogin = mode === "login";
   const errorMessage = error
     ? ERROR_MESSAGES[error] ?? "Something went wrong. Please try again."
@@ -38,6 +39,22 @@ export default function AuthPortalChooser({ mode, error }: AuthPortalChooserProp
             : "Students, schools, and organizations each have their own signup flow."}
         </p>
       </div>
+
+      {verified && (
+        <div
+          role="status"
+          className="flex items-start gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
+        >
+          <svg aria-hidden="true" viewBox="0 0 20 20" fill="currentColor" className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600">
+            <path
+              fillRule="evenodd"
+              d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 9.7a1 1 0 1 1 1.4-1.4l3.8 3.8 6.8-6.8a1 1 0 0 1 1.4 0Z"
+              clipRule="evenodd"
+            />
+          </svg>
+          <span>Email confirmed successfully! Please select your account type below to log in.</span>
+        </div>
+      )}
 
       {errorMessage && (
         <div

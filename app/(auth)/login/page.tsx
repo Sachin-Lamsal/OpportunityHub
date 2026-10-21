@@ -7,8 +7,14 @@ export const metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; verified?: string }>;
 }) {
-  const { error } = await searchParams;
-  return <AuthPortalChooser mode="login" error={error} />;
+  const { error, verified } = await searchParams;
+  return (
+    <AuthPortalChooser
+      mode="login"
+      error={error}
+      verified={verified === "true" || verified === "1"}
+    />
+  );
 }
