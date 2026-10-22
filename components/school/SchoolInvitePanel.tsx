@@ -93,54 +93,59 @@ export default function SchoolInvitePanel({ invites }: SchoolInvitePanelProps) {
       {invites.length === 0 ? (
         <p className="mt-4 text-sm text-slate-600">No invite codes yet.</p>
       ) : (
-        <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="text-xs uppercase text-slate-500">
-              <tr>
-                <th className="py-2 pr-4 font-medium">Code</th>
-                <th className="py-2 pr-4 font-medium">Label</th>
-                <th className="py-2 pr-4 font-medium">Uses</th>
-                <th className="py-2 pr-4 font-medium">Status</th>
-                <th className="py-2 font-medium" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {invites.map((invite) => {
-                const status = inviteStatus(invite);
-                const canDeactivate =
-                  invite.active && status === "Active";
+        <>
+          <p className="mt-4 text-xs text-slate-500 sm:hidden">
+            Swipe sideways to see code details and actions.
+          </p>
+          <div className="mt-2 overflow-x-auto">
+            <table className="min-w-[35rem] text-left text-sm">
+              <thead className="text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="py-2 pr-4 font-medium">Code</th>
+                  <th className="py-2 pr-4 font-medium">Label</th>
+                  <th className="py-2 pr-4 font-medium">Uses</th>
+                  <th className="py-2 pr-4 font-medium">Status</th>
+                  <th className="py-2 font-medium" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {invites.map((invite) => {
+                  const status = inviteStatus(invite);
+                  const canDeactivate =
+                    invite.active && status === "Active";
 
-                return (
-                  <tr key={invite.id}>
-                    <td className="py-3 pr-4 font-mono text-xs font-semibold tracking-wide text-slate-900">
-                      {invite.code}
-                    </td>
-                    <td className="py-3 pr-4 text-slate-600">
-                      {invite.label ?? "—"}
-                    </td>
-                    <td className="py-3 pr-4 text-slate-600">
-                      {invite.use_count}/{invite.max_uses}
-                    </td>
-                    <td className="py-3 pr-4 text-slate-600">{status}</td>
-                    <td className="py-3 text-right">
-                      {canDeactivate ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          disabled={isDeactivating}
-                          onClick={() => handleDeactivate(invite.id)}
-                        >
-                          {isDeactivating ? "Deactivating…" : "Deactivate"}
-                        </Button>
-                      ) : null}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                  return (
+                    <tr key={invite.id}>
+                      <td className="py-3 pr-4 font-mono text-xs font-semibold tracking-wide text-slate-900">
+                        {invite.code}
+                      </td>
+                      <td className="py-3 pr-4 text-slate-600">
+                        {invite.label ?? "—"}
+                      </td>
+                      <td className="py-3 pr-4 text-slate-600">
+                        {invite.use_count}/{invite.max_uses}
+                      </td>
+                      <td className="py-3 pr-4 text-slate-600">{status}</td>
+                      <td className="py-3 text-right">
+                        {canDeactivate ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            disabled={isDeactivating}
+                            onClick={() => handleDeactivate(invite.id)}
+                          >
+                            {isDeactivating ? "Deactivating…" : "Deactivate"}
+                          </Button>
+                        ) : null}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </Card>
   );

@@ -33,54 +33,59 @@ export default async function SchoolStudentsPage() {
           </p>
         </Card>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-          <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-500">
-              <tr>
-                <th className="px-4 py-3 font-medium">Email</th>
-                <th className="px-4 py-3 font-medium">Education level</th>
-                <th className="px-4 py-3 font-medium">Dream university</th>
-                <th className="px-4 py-3 font-medium">Activities logged</th>
-                <th className="px-4 py-3 font-medium">Last activity</th>
-                <th className="px-4 py-3 font-medium" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {students.map((student) => (
-                <tr key={student.id}>
-                  <td className="px-4 py-3 font-medium text-slate-900">
-                    <Link
-                      href={`/school/students/${student.id}`}
-                      className="text-indigo-600 hover:text-indigo-700"
-                    >
-                      {student.email}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {student.education_level ?? "—"}
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {student.dream_universities ?? "—"}
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {student.activity_count}
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {student.last_activity_date ?? "—"}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/school/students/${student.id}`}
-                      className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
-                    >
-                      View
-                    </Link>
-                  </td>
+        <>
+          <p className="mb-2 text-xs text-slate-500 sm:hidden">
+            Swipe sideways to see every student detail.
+          </p>
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table className="min-w-[44rem] text-left text-sm">
+              <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Email</th>
+                  <th className="px-4 py-3 font-medium">Education level</th>
+                  <th className="px-4 py-3 font-medium">Dream university</th>
+                  <th className="px-4 py-3 font-medium">Activities logged</th>
+                  <th className="px-4 py-3 font-medium">Last activity</th>
+                  <th className="px-4 py-3 font-medium" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {students.map((student) => (
+                  <tr key={student.id}>
+                    <td className="px-4 py-3 font-medium text-slate-900">
+                      <Link
+                        href={`/school/students/${student.id}`}
+                        className="text-indigo-600 hover:text-indigo-700"
+                      >
+                        {student.email}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {student.education_level ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {student.dream_universities ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {student.activity_count}
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {student.last_activity_date ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Link
+                        href={`/school/students/${student.id}`}
+                        className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+                      >
+                        View
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </>
   );

@@ -41,7 +41,7 @@ export default function CandidateReviewActions({
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-4">
+      <div className="flex flex-wrap gap-2 sm:gap-4">
         <Button
           type="button"
           variant="primary"

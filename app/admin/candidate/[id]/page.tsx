@@ -28,7 +28,7 @@ export default async function CandidatePage({ params }: PageProps) {
           <h3 className="font-semibold text-slate-900">Description</h3>
           <p className="text-slate-700">{candidate.description}</p>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <span className="text-sm font-semibold text-slate-600">Deadline</span>
             <p>{candidate.deadline || "N/A"}</p>

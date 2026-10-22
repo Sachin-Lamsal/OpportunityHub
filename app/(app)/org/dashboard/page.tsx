@@ -62,7 +62,7 @@ export default async function OrgDashboardPage() {
 
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
               Your opportunities
             </h2>
@@ -73,11 +73,20 @@ export default async function OrgDashboardPage() {
               Manage all ({stats.total})
             </Link>
           </div>
-          <div className="flex items-center gap-2">
-            <Button href="/opportunities/ingest" variant="outline" size="sm">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <Button
+              href="/opportunities/ingest"
+              variant="outline"
+              size="sm"
+              className="w-full sm:w-auto"
+            >
               Import from web or document
             </Button>
-            <Button href="/opportunities/new" size="sm">
+            <Button
+              href="/opportunities/new"
+              size="sm"
+              className="w-full sm:w-auto"
+            >
               Add opportunity
             </Button>
           </div>

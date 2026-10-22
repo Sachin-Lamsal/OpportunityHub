@@ -113,7 +113,7 @@ export default async function SchoolDashboardPage() {
 
         <section>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
                 Your listings (drafts, in review and published)
               </h2>
@@ -124,11 +124,20 @@ export default async function SchoolDashboardPage() {
                 Manage all ({opportunityStats.total})
               </Link>
             </div>
-            <div className="flex items-center gap-2">
-              <Button href="/opportunities/ingest" variant="outline" size="sm">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              <Button
+                href="/opportunities/ingest"
+                variant="outline"
+                size="sm"
+                className="w-full sm:w-auto"
+              >
                 Import from web or document
               </Button>
-              <Button href="/opportunities/new" size="sm">
+              <Button
+                href="/opportunities/new"
+                size="sm"
+                className="w-full sm:w-auto"
+              >
                 Add opportunity
               </Button>
             </div>
@@ -157,41 +166,46 @@ export default async function SchoolDashboardPage() {
               up.
             </Card>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-              <table className="min-w-full text-left text-sm">
-                <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-500">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">Student</th>
-                    <th className="px-4 py-3 font-medium">Level</th>
-                    <th className="px-4 py-3 font-medium">Activities</th>
-                    <th className="px-4 py-3 font-medium">Last activity</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {students.slice(0, 5).map((student) => (
-                    <tr key={student.id}>
-                      <td className="px-4 py-3 text-slate-900">
-                        <Link
-                          href={`/school/students/${student.id}`}
-                          className="font-medium text-indigo-600 hover:text-indigo-700"
-                        >
-                          {student.email}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {student.education_level ?? "—"}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {student.activity_count}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {student.last_activity_date ?? "—"}
-                      </td>
+            <>
+              <p className="mb-2 text-xs text-slate-500 sm:hidden">
+                Swipe sideways to view the full student snapshot.
+              </p>
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                <table className="min-w-[34rem] text-left text-sm">
+                  <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-500">
+                    <tr>
+                      <th className="px-4 py-3 font-medium">Student</th>
+                      <th className="px-4 py-3 font-medium">Level</th>
+                      <th className="px-4 py-3 font-medium">Activities</th>
+                      <th className="px-4 py-3 font-medium">Last activity</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {students.slice(0, 5).map((student) => (
+                      <tr key={student.id}>
+                        <td className="px-4 py-3 text-slate-900">
+                          <Link
+                            href={`/school/students/${student.id}`}
+                            className="font-medium text-indigo-600 hover:text-indigo-700"
+                          >
+                            {student.email}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">
+                          {student.education_level ?? "—"}
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">
+                          {student.activity_count}
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">
+                          {student.last_activity_date ?? "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </section>
       </div>

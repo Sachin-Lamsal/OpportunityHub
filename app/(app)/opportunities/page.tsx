@@ -89,7 +89,7 @@ export default function OpportunitiesPage({ searchParams }: OpportunitiesPagePro
         title="Opportunities"
         description="Discover competitions, workshops, internships, and more."
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button href="/my-opportunities" variant="outline" size="sm">
               My Submissions
             </Button>

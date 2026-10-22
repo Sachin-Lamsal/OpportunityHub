@@ -142,7 +142,7 @@ export default async function OpportunityDetailPage({
               Sign in to save this opportunity to your tracker, calculate portfolio scores, and chat with the AI Advisor.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               href={`/login/student?next=${encodeURIComponent(`/opportunities/${opportunity.id}`)}`}
               size="sm"
@@ -213,7 +213,7 @@ export default async function OpportunityDetailPage({
         title={opportunity.title}
         description={opportunity.organizer ?? undefined}
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {profile?.account_type === "student" && (
               <Button
                 href={`/portfolio/add?opportunityId=${opportunity.id}`}

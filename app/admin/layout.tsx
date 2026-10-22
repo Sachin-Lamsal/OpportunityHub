@@ -28,16 +28,21 @@ export default async function AdminLayout({
     <div className="min-h-screen bg-slate-50">
       <nav className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
-            <div className="flex items-center gap-4 text-sm">
+            <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-2 text-sm sm:w-auto">
               <Link href="/admin/dashboard" className="font-medium text-indigo-600 hover:text-indigo-700">
                 Discovery queue
               </Link>
               <Link href="/admin/publisher-review" className="font-medium text-indigo-600 hover:text-indigo-700">
                 Publisher review
               </Link>
-              <span className="text-slate-600">{admin.email}</span>
+              <span
+                className="max-w-full break-all text-xs text-slate-600 sm:max-w-64 sm:truncate sm:text-sm"
+                title={admin.email ?? undefined}
+              >
+                {admin.email}
+              </span>
             </div>
           </div>
         </div>

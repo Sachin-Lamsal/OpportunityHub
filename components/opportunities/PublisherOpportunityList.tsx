@@ -132,7 +132,7 @@ export default function PublisherOpportunityList({
             ) : null}
           </div>
 
-          <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-sm">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 text-sm">
             <Link
               href={`/opportunities/${opportunity.id}`}
               className="font-medium text-slate-600 hover:text-slate-900"
@@ -140,7 +140,7 @@ export default function PublisherOpportunityList({
               View
             </Link>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-1">
               <Link
                 href={`/opportunities/${opportunity.id}/edit`}
                 className="rounded px-2.5 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50"
