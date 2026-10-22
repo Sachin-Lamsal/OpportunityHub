@@ -40,6 +40,12 @@ export default function Header({ variant = "public" }: HeaderProps) {
               <Button href="/login" variant="ghost" size="sm">
                 Log in
               </Button>
+              <Link
+                href="/login/admin"
+                className="text-sm font-medium text-slate-600 transition-colors hover:text-indigo-700"
+              >
+                Admin portal
+              </Link>
               <Button href="/signup" size="sm">
                 Sign up free
               </Button>
@@ -87,6 +93,13 @@ export default function Header({ variant = "public" }: HeaderProps) {
             <Button href="/login" variant="outline" size="sm" className="w-full">
               Log in
             </Button>
+            <Link
+              href="/login/admin"
+              onClick={() => setMenuOpen(false)}
+              className="block rounded-lg px-3 py-2 text-center text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-indigo-700"
+            >
+              Admin portal
+            </Link>
             <Button href="/signup" size="sm" className="w-full">
               Sign up free
             </Button>
