@@ -56,9 +56,28 @@ export default function OpportunityForm({
           <input type="hidden" name="opportunity_id" value={initialData.id} />
         ) : null}
         {copyFrom?.id ? (
-          <input type="hidden" name="parent_opportunity_id" value={copyFrom.id} />
+          <input
+            type="hidden"
+            name="parent_opportunity_id"
+            value={copyFrom.parent_opportunity_id ?? copyFrom.id}
+          />
         ) : null}
         <FormMessage error={state.error} success={state.success} />
+
+        {isNewEdition && copyFrom ? (
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50/70 p-4 text-sm text-indigo-950">
+            <p className="font-semibold flex items-center gap-1.5">
+              <span>🔄</span> Recurring Edition / Next Instance
+            </p>
+            <p className="text-xs text-indigo-800 mt-1">
+              You are proposing a new instance for <strong>{copyFrom.title}</strong>.
+              Core information has been pre-filled. Please verify or update the edition label, deadlines, and application links.
+            </p>
+            <p className="text-xs text-indigo-700 mt-1 font-medium">
+              Note: This submission is queued as a suggestion for administrator review and will not appear live until approved.
+            </p>
+          </div>
+        ) : null}
 
         {initialData?.review_note ? (
           <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
@@ -161,19 +180,19 @@ export default function OpportunityForm({
               label="Deadline (optional)"
               name="deadline"
               type="date"
-              defaultValue={data?.deadline ?? ""}
+              defaultValue={isNewEdition ? "" : (data?.deadline ?? "")}
             />
             <Input
               label="Start date (optional)"
               name="start_date"
               type="date"
-              defaultValue={data?.start_date ?? ""}
+              defaultValue={isNewEdition ? "" : (data?.start_date ?? "")}
             />
             <Input
               label="End date (optional)"
               name="end_date"
               type="date"
-              defaultValue={data?.end_date ?? ""}
+              defaultValue={isNewEdition ? "" : (data?.end_date ?? "")}
             />
           </div>
 
@@ -230,13 +249,23 @@ export default function OpportunityForm({
         </section>
 
         {isNewEdition ? (
-          <section className="border-t border-slate-200 pt-6">
+          <section className="space-y-4 border-t border-slate-200 pt-6">
+            <div>
+              <h2 className="font-semibold text-slate-900">Edition & recurring series</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Provide an edition label or year so students can distinguish this instance from previous years.
+              </p>
+            </div>
             <Input
-              label="Edition label (optional)"
+              label="Edition label"
               name="edition_year"
               type="text"
-              defaultValue={String(new Date().getFullYear())}
-              placeholder="e.g. 2027"
+              defaultValue={
+                copyFrom?.edition_year && !isNaN(Number(copyFrom.edition_year))
+                  ? String(Number(copyFrom.edition_year) + 1)
+                  : String(new Date().getFullYear())
+              }
+              placeholder="e.g. 2026, Summer 2026, Annual 2026"
             />
           </section>
         ) : null}

@@ -75,6 +75,7 @@ export const STUDENT_NAV_LINKS = [
 export const SCHOOL_NAV_LINKS = [
   { href: "/school/dashboard", label: "Dashboard" },
   { href: "/school/students", label: "Students" },
+  { href: "/my-opportunities", label: "My Listings" },
   { href: "/opportunities/new", label: "Add opportunity" },
   { href: "/opportunities", label: "Browse" },
   { href: "/school/profile", label: "Settings" },
@@ -82,6 +83,7 @@ export const SCHOOL_NAV_LINKS = [
 
 export const ORG_NAV_LINKS = [
   { href: "/org/dashboard", label: "Dashboard" },
+  { href: "/my-opportunities", label: "My Listings" },
   { href: "/opportunities/new", label: "Add opportunity" },
   { href: "/opportunities", label: "Browse" },
   { href: "/org/profile", label: "Settings" },

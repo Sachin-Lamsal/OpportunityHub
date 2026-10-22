@@ -79,29 +79,45 @@ export default async function SchoolDashboardPage() {
         </section>
 
         <section className="grid gap-4 sm:grid-cols-4">
-          <Card>
-            <p className="text-sm text-slate-500">Drafts</p>
-            <p className="mt-1 text-3xl font-bold text-slate-900">{opportunityStats.draft}</p>
-          </Card>
-          <Card>
-            <p className="text-sm text-slate-500">Awaiting review</p>
-            <p className="mt-1 text-3xl font-bold text-amber-700">{opportunityStats.pendingReview}</p>
-          </Card>
-          <Card>
-            <p className="text-sm text-slate-500">Published</p>
-            <p className="mt-1 text-3xl font-bold text-emerald-700">{opportunityStats.published}</p>
-          </Card>
-          <Card>
-            <p className="text-sm text-slate-500">Needs changes</p>
-            <p className="mt-1 text-3xl font-bold text-rose-700">{opportunityStats.needsAttention}</p>
-          </Card>
+          <Link href="/my-opportunities?status=draft" className="block transition-transform hover:-translate-y-0.5">
+            <Card>
+              <p className="text-sm text-slate-500">Drafts</p>
+              <p className="mt-1 text-3xl font-bold text-slate-900">{opportunityStats.draft}</p>
+            </Card>
+          </Link>
+          <Link href="/my-opportunities?status=pending_review" className="block transition-transform hover:-translate-y-0.5">
+            <Card>
+              <p className="text-sm text-slate-500">Awaiting review</p>
+              <p className="mt-1 text-3xl font-bold text-amber-700">{opportunityStats.pendingReview}</p>
+            </Card>
+          </Link>
+          <Link href="/my-opportunities?status=published" className="block transition-transform hover:-translate-y-0.5">
+            <Card>
+              <p className="text-sm text-slate-500">Published</p>
+              <p className="mt-1 text-3xl font-bold text-emerald-700">{opportunityStats.published}</p>
+            </Card>
+          </Link>
+          <Link href="/my-opportunities?status=rejected" className="block transition-transform hover:-translate-y-0.5">
+            <Card>
+              <p className="text-sm text-slate-500">Needs changes</p>
+              <p className="mt-1 text-3xl font-bold text-rose-700">{opportunityStats.needsAttention}</p>
+            </Card>
+          </Link>
         </section>
 
         <section>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-              Your listings (drafts, in review and published)
-            </h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                Your listings (drafts, in review and published)
+              </h2>
+              <Link
+                href="/my-opportunities"
+                className="text-xs font-semibold text-slate-600 hover:text-indigo-600"
+              >
+                Manage all ({opportunityStats.total}) →
+              </Link>
+            </div>
             <div className="flex items-center gap-2">
               <Button href="/opportunities/ingest" variant="outline" size="sm">
                 ⚡ Web / OCR Ingest

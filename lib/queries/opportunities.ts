@@ -30,19 +30,26 @@ function getDeadlineRange() {
 
 export async function getOpportunitiesCreatedByUser(
   userId: string,
-  limit = 10,
+  limit = 50,
+  status?: string,
 ): Promise<Opportunity[]> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("opportunities")
     .select("*")
-    .eq("created_by", userId)
+    .eq("created_by", userId);
+
+  if (status && status !== "all") {
+    query = query.eq("lifecycle_status", status);
+  }
+
+  const { data, error } = await query
     .order("created_at", { ascending: false })
     .limit(limit);
 
   if (error) {
-    console.error("Failed to load published opportunities:", error.message);
+    console.error("Failed to load user opportunities:", error.message);
     return [];
   }
 
@@ -55,6 +62,7 @@ export interface PublisherOpportunityStats {
   pendingReview: number;
   published: number;
   needsAttention: number;
+  total: number;
 }
 
 export async function getPublisherOpportunityStats(
@@ -83,6 +91,7 @@ export async function getPublisherOpportunityStats(
     pendingReview: counts.pending_review,
     published: counts.published,
     needsAttention: counts.rejected,
+    total: counts.draft + counts.pending_review + counts.published + counts.rejected,
   };
 }
 

@@ -29,7 +29,13 @@ export default async function NewOpportunityPage({
   if (from) {
     if (!UUID_RE.test(from)) notFound();
     const source = await getOpportunityById(from);
-    if (!source || source.created_by !== profile.id) notFound();
+    if (!source) notFound();
+    const isOwner = source.created_by === profile.id;
+    const isVerifiedOrPublic =
+      Boolean(source.is_verified) ||
+      source.verification_status === "verified" ||
+      source.lifecycle_status === "published";
+    if (!isOwner && !isVerifiedOrPublic) notFound();
     copyFrom = source;
   }
 

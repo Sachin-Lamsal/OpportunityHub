@@ -84,6 +84,16 @@ export default function PublisherOpportunityList({
                 {opportunity.type}
               </span>
               <OpportunityLifecycleBadge status={opportunity.lifecycle_status} />
+              {opportunity.edition_year && (
+                <span className="rounded-full bg-violet-50 px-2.5 py-0.5 text-xs font-semibold text-violet-700">
+                  {opportunity.edition_year} Edition
+                </span>
+              )}
+              {opportunity.parent_opportunity_id && (
+                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+                  Series
+                </span>
+              )}
               {opportunity.subject_area && (
                 <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
                   {opportunity.subject_area}
@@ -139,9 +149,10 @@ export default function PublisherOpportunityList({
               </Link>
               <Link
                 href={`/opportunities/new?from=${opportunity.id}`}
-                className="rounded px-2.5 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50"
+                className="inline-flex items-center gap-1 rounded bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors"
+                title="Propose next edition or instance"
               >
-                New edition
+                <span>+</span> New edition
               </Link>
               {canCancel ? (
                 <button

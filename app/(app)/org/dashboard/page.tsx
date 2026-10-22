@@ -1,3 +1,4 @@
+import Link from "next/link";
 import PageHeader from "@/components/layout/PageHeader";
 import PublisherOpportunityList from "@/components/opportunities/PublisherOpportunityList";
 import Button from "@/components/ui/Button";
@@ -33,29 +34,45 @@ export default async function OrgDashboardPage() {
       />
 
       <section className="mb-8 grid gap-4 sm:grid-cols-4">
-        <Card>
-          <p className="text-sm text-slate-500">Drafts</p>
-          <p className="mt-1 text-3xl font-bold text-slate-900">{stats.draft}</p>
-        </Card>
-        <Card>
-          <p className="text-sm text-slate-500">Awaiting review</p>
-          <p className="mt-1 text-3xl font-bold text-amber-700">{stats.pendingReview}</p>
-        </Card>
-        <Card>
-          <p className="text-sm text-slate-500">Published</p>
-          <p className="mt-1 text-3xl font-bold text-emerald-700">{stats.published}</p>
-        </Card>
-        <Card>
-          <p className="text-sm text-slate-500">Needs changes</p>
-          <p className="mt-1 text-3xl font-bold text-rose-700">{stats.needsAttention}</p>
-        </Card>
+        <Link href="/my-opportunities?status=draft" className="block transition-transform hover:-translate-y-0.5">
+          <Card>
+            <p className="text-sm text-slate-500">Drafts</p>
+            <p className="mt-1 text-3xl font-bold text-slate-900">{stats.draft}</p>
+          </Card>
+        </Link>
+        <Link href="/my-opportunities?status=pending_review" className="block transition-transform hover:-translate-y-0.5">
+          <Card>
+            <p className="text-sm text-slate-500">Awaiting review</p>
+            <p className="mt-1 text-3xl font-bold text-amber-700">{stats.pendingReview}</p>
+          </Card>
+        </Link>
+        <Link href="/my-opportunities?status=published" className="block transition-transform hover:-translate-y-0.5">
+          <Card>
+            <p className="text-sm text-slate-500">Published</p>
+            <p className="mt-1 text-3xl font-bold text-emerald-700">{stats.published}</p>
+          </Card>
+        </Link>
+        <Link href="/my-opportunities?status=rejected" className="block transition-transform hover:-translate-y-0.5">
+          <Card>
+            <p className="text-sm text-slate-500">Needs changes</p>
+            <p className="mt-1 text-3xl font-bold text-rose-700">{stats.needsAttention}</p>
+          </Card>
+        </Link>
       </section>
 
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Your opportunities
-          </h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              Your opportunities
+            </h2>
+            <Link
+              href="/my-opportunities"
+              className="text-xs font-semibold text-slate-600 hover:text-indigo-600"
+            >
+              Manage all ({stats.total}) →
+            </Link>
+          </div>
           <div className="flex items-center gap-2">
             <Button href="/opportunities/ingest" variant="outline" size="sm">
               ⚡ Web / OCR Ingest

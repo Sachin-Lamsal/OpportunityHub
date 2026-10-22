@@ -169,6 +169,7 @@ function parseOpportunityFields(
 
 function revalidatePublisherViews(context: PublisherContext, opportunityId?: string) {
   revalidatePath("/opportunities");
+  revalidatePath("/my-opportunities");
   revalidatePath(dashboardPath(context.accountType));
   revalidatePath(publisherPath(context));
   revalidatePath("/admin/publisher-review");
@@ -193,17 +194,33 @@ export async function createOpportunity(
     return { error: "The selected parent opportunity is invalid." };
   }
 
+  let resolvedParentId: string | null = null;
+
   if (parentOpportunityId) {
     const { data: parent } = await supabase
       .from("opportunities")
-      .select("id")
+      .select("id, created_by, is_verified, verification_status, lifecycle_status, parent_opportunity_id")
       .eq("id", parentOpportunityId)
-      .eq("created_by", publisher.context.id)
       .maybeSingle();
 
     if (!parent) {
-      return { error: "You can only create a new edition from one of your own opportunities." };
+      return { error: "The selected parent opportunity could not be found." };
     }
+
+    const isOwner = parent.created_by === publisher.context.id;
+    const isVerifiedParent =
+      Boolean(parent.is_verified) ||
+      parent.verification_status === "verified" ||
+      parent.lifecycle_status === "published";
+
+    if (!isOwner && !isVerifiedParent) {
+      return {
+        error: "You can only create a new edition from your own listings or verified public opportunities.",
+      };
+    }
+
+    // Attach to the root series parent so all annual/recurring editions stay grouped under the same parent
+    resolvedParentId = parent.parent_opportunity_id ?? parent.id;
   }
 
   const organizer =
@@ -220,7 +237,7 @@ export async function createOpportunity(
       lifecycle_status: parsed.intent === "review" ? "pending_review" : "draft",
       is_verified: false,
       verification_status: "unverified",
-      parent_opportunity_id: parentOpportunityId,
+      parent_opportunity_id: resolvedParentId,
       edition_year: editionYear,
     })
     .select("id")

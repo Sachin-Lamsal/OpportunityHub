@@ -196,12 +196,20 @@ export default async function DashboardPage() {
             <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
               7. Opportunities you shared
             </h2>
-            <Link
-              href="/opportunities/new"
-              className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
-            >
-              + Add opportunity
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/my-opportunities"
+                className="text-xs font-semibold text-slate-600 hover:text-indigo-600"
+              >
+                Manage all →
+              </Link>
+              <Link
+                href="/opportunities/new"
+                className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+              >
+                + Add opportunity
+              </Link>
+            </div>
           </div>
           {myCreatedOpportunities.length > 0 ? (
             <PublisherOpportunityList
