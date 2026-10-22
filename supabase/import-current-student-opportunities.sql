@@ -7,8 +7,8 @@
 -- 2. In Supabase Dashboard -> SQL Editor, paste this entire file and click Run.
 -- 3. Review the new pending submissions from /admin/publisher-review.
 --
--- This script is safe to run again: it will not add another row for a source
--- URL already in public.opportunities. It does not delete old data. Listings
+-- This script is safe to run again: it will not add another row when its source
+-- URL or title is already in public.opportunities. It does not delete old data. Listings
 -- whose deadline has passed, or which lack the core information needed to act,
 -- are archived so they do not show in the live opportunity feed. A well-
 -- documented rolling opportunity is retained even if it has no fixed date.
@@ -236,6 +236,7 @@ where not exists (
   select 1
   from public.opportunities existing
   where existing.source_url = l.source_url
+     or lower(trim(existing.title)) = lower(trim(l.title))
 );
 
 commit;
