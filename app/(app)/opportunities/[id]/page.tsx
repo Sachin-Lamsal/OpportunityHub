@@ -20,6 +20,7 @@ import {
   getOpportunityComments,
   getOpportunityReviews,
 } from "@/lib/queries/community";
+import { hasConfirmedParticipation } from "@/lib/queries/activities";
 import {
   getPublicPublisherProfile,
   getRelatedEditions,
@@ -85,12 +86,13 @@ export default async function OpportunityDetailPage({
     notFound();
   }
 
-  const [savedInfo, profile, comments, reviews, editions] = await Promise.all([
+  const [savedInfo, profile, comments, reviews, editions, hasConfirmedParticipationForOpportunity] = await Promise.all([
     getSavedOpportunityInfo(id),
     getProfile(),
     getOpportunityComments(id),
     getOpportunityReviews(id),
     getRelatedEditions(opportunity),
+    hasConfirmedParticipation(id),
   ]);
 
   const publisherProfile = opportunity.created_by
@@ -347,6 +349,10 @@ export default async function OpportunityDetailPage({
             initialComments={comments}
             initialReviews={reviews}
             currentProfile={profile}
+            canSubmitReview={
+              profile?.account_type === "student" && hasConfirmedParticipationForOpportunity
+            }
+            canViewReviews={profile?.account_type !== "school"}
           />
         </div>
 

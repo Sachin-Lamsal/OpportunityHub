@@ -31,6 +31,11 @@ export default async function OrgDashboardPage() {
       <PageHeader
         title={profile.organization_name ?? "Organization dashboard"}
         description="Publish and manage opportunities for students on OpportunityHub."
+        action={
+          <Button href="/org/participation" variant="outline" size="sm">
+            Confirm participation
+          </Button>
+        }
       />
 
       <section className="mb-8 grid gap-4 sm:grid-cols-4">

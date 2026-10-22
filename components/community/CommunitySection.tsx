@@ -15,6 +15,8 @@ interface CommunitySectionProps {
   initialComments: OpportunityComment[];
   initialReviews: OpportunityReview[];
   currentProfile: Profile | null;
+  canSubmitReview: boolean;
+  canViewReviews: boolean;
 }
 
 export default function CommunitySection({
@@ -22,8 +24,12 @@ export default function CommunitySection({
   initialComments,
   initialReviews,
   currentProfile,
+  canSubmitReview,
+  canViewReviews,
 }: CommunitySectionProps) {
-  const [activeTab, setActiveTab] = useState<"advice" | "qa">("advice");
+  const [activeTab, setActiveTab] = useState<"advice" | "qa">(
+    canViewReviews ? "advice" : "qa",
+  );
   const [isPending, startTransition] = useTransition();
   // The comments and reviews are rendered from server props, so a successful
   // mutation has to pull the new rows in. Without this the action reported
@@ -116,17 +122,19 @@ export default function CommunitySection({
 
         {/* Tab switcher */}
         <div className="flex rounded-lg bg-slate-100 p-1 text-xs font-semibold">
-          <button
-            type="button"
-            onClick={() => setActiveTab("advice")}
-            className={`rounded-md px-3 py-1.5 transition-all ${
-              activeTab === "advice"
-                ? "bg-white text-indigo-700 shadow-xs"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            Participant advice ({initialReviews.length})
-          </button>
+          {canViewReviews && (
+            <button
+              type="button"
+              onClick={() => setActiveTab("advice")}
+              className={`rounded-md px-3 py-1.5 transition-all ${
+                activeTab === "advice"
+                  ? "bg-white text-indigo-700 shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Participant advice ({initialReviews.length})
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setActiveTab("qa")}
@@ -142,13 +150,13 @@ export default function CommunitySection({
       </div>
 
       {/* TAB 1: PARTICIPANT REVIEWS & ADVICE */}
-      {activeTab === "advice" && (
+      {canViewReviews && activeTab === "advice" && (
         <div className="pt-4 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-slate-500">
               Have you participated in this before? Help future applicants prepare effectively.
             </p>
-            {currentProfile && (
+            {canSubmitReview && (
               <Button
                 size="sm"
                 variant="outline"
@@ -164,6 +172,12 @@ export default function CommunitySection({
           )}
           {reviewMsg?.success && (
             <p className="text-xs text-emerald-600 bg-emerald-50 p-2 rounded-lg">{reviewMsg.success}</p>
+          )}
+
+          {currentProfile?.account_type === "student" && !canSubmitReview && (
+            <p className="rounded-lg bg-amber-50 p-2 text-xs text-amber-900">
+              Your participation must be confirmed before you can share an experience.
+            </p>
           )}
 
           {/* Form to submit review */}

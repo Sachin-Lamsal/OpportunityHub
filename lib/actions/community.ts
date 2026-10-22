@@ -101,18 +101,34 @@ export async function submitReview(
     return { error: "You must be signed in to contribute participant advice." };
   }
 
-  // Verified-participant badge: has this user logged this opportunity in their
-  // portfolio? `.limit(1)` is required — a student may log the same opportunity
-  // more than once, and `maybeSingle()` errors on multiple rows, which silently
-  // downgraded them to an unverified participant.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("account_type")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profile?.account_type !== "student") {
+    return { error: "Only confirmed student participants can share a review." };
+  }
+
+  // Reviews require a confirmation, not merely an activity a user logged for
+  // themselves. The database trigger and RLS policy repeat this check.
   const { data: activities } = await supabase
     .from("activities")
     .select("id")
     .eq("user_id", user.id)
     .eq("opportunity_id", opportunityId)
+    .eq("participation_status", "confirmed")
     .limit(1);
 
   const isVerifiedParticipant = Boolean(activities && activities.length > 0);
+
+  if (!isVerifiedParticipant) {
+    return {
+      error:
+        "Your participation needs confirmation from your school or the organization before you can share a review.",
+    };
+  }
 
   const { error } = await supabase.from("opportunity_reviews").upsert(
     {

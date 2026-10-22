@@ -26,6 +26,16 @@ export async function createActivity(
     return { error: "You must be logged in." };
   }
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("account_type")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profile?.account_type !== "student") {
+    return { error: "Only student accounts can add portfolio activities." };
+  }
+
   const title = (formData.get("title") as string)?.trim();
   const category = formData.get("category") as ActivityCategory;
   const description = (formData.get("description") as string)?.trim();
@@ -41,6 +51,10 @@ export async function createActivity(
     return { error: "Please select a valid category." };
   }
 
+  if (opportunityId && !UUID_RE.test(opportunityId)) {
+    return { error: "Please select a valid OpportunityHub opportunity." };
+  }
+
   const { error } = await supabase.from("activities").insert({
     user_id: user.id,
     title,
@@ -49,6 +63,8 @@ export async function createActivity(
     date,
     notes,
     opportunity_id: opportunityId,
+    participation_status: opportunityId ? "pending" : "unverified",
+    participation_requested_at: opportunityId ? new Date().toISOString() : null,
   });
 
   if (error) {
@@ -58,7 +74,12 @@ export async function createActivity(
   revalidatePath("/portfolio");
   revalidatePath("/dashboard");
   revalidatePath("/cv-builder");
-  return { redirectTo: "/portfolio" };
+  return {
+    redirectTo: "/portfolio",
+    success: opportunityId
+      ? "Activity saved. Your participation is ready for confirmation."
+      : "Activity saved.",
+  };
 }
 
 export async function deleteActivity(activityId: string): Promise<ActivityState> {
@@ -143,7 +164,96 @@ export async function setSchoolActivityVerification(
 
   return {
     success: shouldVerify
-      ? "Activity verified by your school."
-      : "School verification removed.",
+      ? "Participation confirmed by your school."
+      : "School confirmation removed.",
+  };
+}
+
+/** Ask the school or listing organization to confirm a linked activity. */
+export async function requestParticipationConfirmation(
+  activityId: string,
+): Promise<ActivityState> {
+  if (!UUID_RE.test(activityId)) {
+    return { error: "Invalid participation confirmation request." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "You must be logged in." };
+
+  const { data: studentId, error } = await supabase.rpc(
+    "request_activity_participation_verification",
+    { activity_uuid: activityId },
+  );
+
+  if (error || !studentId) {
+    return {
+      error:
+        "This activity cannot be requested for confirmation. Link it to an OpportunityHub listing first.",
+    };
+  }
+
+  revalidatePath("/portfolio");
+  revalidatePath("/dashboard");
+  revalidatePath("/school/students");
+  revalidatePath(`/school/students/${studentId}`);
+  revalidatePath("/org/participation");
+
+  return { success: "Confirmation request sent." };
+}
+
+/** Lets the organization that published a listing confirm a student's request. */
+export async function setOrganizationActivityVerification(
+  activityId: string,
+  shouldVerify: boolean,
+): Promise<ActivityState> {
+  if (!UUID_RE.test(activityId) || typeof shouldVerify !== "boolean") {
+    return { error: "Invalid participation confirmation request." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "You must be logged in." };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("account_type")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profile?.account_type !== "organization") {
+    return { error: "Only organization accounts can confirm these requests." };
+  }
+
+  const { data: studentId, error } = await supabase.rpc(
+    "set_organization_activity_verification",
+    {
+      activity_uuid: activityId,
+      should_verify: shouldVerify,
+    },
+  );
+
+  if (error || !studentId) {
+    return {
+      error:
+        "This participation record is not available for your organization.",
+    };
+  }
+
+  revalidatePath("/org/participation");
+  revalidatePath("/portfolio");
+  revalidatePath("/dashboard");
+  revalidatePath(`/school/students/${studentId}`);
+
+  return {
+    success: shouldVerify
+      ? "Participation confirmed. The student can now share their experience."
+      : "Organization confirmation removed.",
   };
 }

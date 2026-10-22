@@ -83,6 +83,7 @@ export const SCHOOL_NAV_LINKS = [
 
 export const ORG_NAV_LINKS = [
   { href: "/org/dashboard", label: "Dashboard" },
+  { href: "/org/participation", label: "Confirm participation" },
   { href: "/my-opportunities", label: "My Listings" },
   { href: "/opportunities/new", label: "Add opportunity" },
   { href: "/opportunities", label: "Browse" },

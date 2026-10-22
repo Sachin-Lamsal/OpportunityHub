@@ -55,6 +55,11 @@ export type OpportunityLifecycleStatus =
   | "expired"
   | "cancelled"
   | "archived";
+export type ParticipationStatus =
+  | "unverified"
+  | "pending"
+  | "confirmed"
+  | "declined";
 
 export interface Opportunity {
   id: string;
@@ -133,6 +138,24 @@ export interface Activity {
   school_verified: boolean;
   school_verified_at: string | null;
   school_verified_by: string | null;
+  participation_status?: ParticipationStatus;
+  participation_requested_at?: string | null;
+  participation_confirmed_at?: string | null;
+  participation_confirmed_by?: string | null;
+  participation_confirmed_by_type?: "school" | "organization" | null;
+}
+
+export interface OrganizationParticipationRequest {
+  activity_id: string;
+  student_email: string;
+  opportunity_id: string;
+  opportunity_title: string;
+  activity_title: string;
+  activity_description: string;
+  activity_date: string;
+  requested_at: string | null;
+  participation_status: ParticipationStatus;
+  confirmed_at: string | null;
 }
 
 export interface SavedOpportunity {

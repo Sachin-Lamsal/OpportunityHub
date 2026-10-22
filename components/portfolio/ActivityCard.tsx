@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   deleteActivity,
+  requestParticipationConfirmation,
   setSchoolActivityVerification,
 } from "@/lib/actions/activities";
 import type { Activity } from "@/lib/types";
@@ -49,7 +50,7 @@ export default function ActivityCard({
     startTransition(async () => {
       const result = await setSchoolActivityVerification(
         activity.id,
-        !activity.school_verified,
+        participationStatus !== "confirmed",
       );
 
       if (result.error) {
@@ -61,8 +62,30 @@ export default function ActivityCard({
     });
   }
 
+  function handleRequestConfirmation() {
+    setVerificationError(null);
+    startTransition(async () => {
+      const result = await requestParticipationConfirmation(activity.id);
+      if (result.error) {
+        setVerificationError(result.error);
+        return;
+      }
+
+      router.refresh();
+    });
+  }
+
   const colorClass =
     categoryColors[activity.category] ?? "bg-slate-100 text-slate-700";
+  const participationStatus = activity.participation_status ?? (
+    activity.school_verified ? "confirmed" : "unverified"
+  );
+  const canRequestConfirmation =
+    showDelete && Boolean(activity.opportunity_id) && participationStatus !== "confirmed";
+  const schoolCanConfirm =
+    showSchoolVerification && participationStatus === "pending";
+  const schoolCanRemoveConfirmation =
+    showSchoolVerification && participationStatus === "confirmed";
 
   return (
     <Card>
@@ -77,9 +100,19 @@ export default function ActivityCard({
             <span className="text-xs text-slate-500">
               {formatDate(activity.date)}
             </span>
-            {activity.school_verified && (
+            {participationStatus === "confirmed" && (
               <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
-                Verified by school
+                Participation confirmed
+              </span>
+            )}
+            {participationStatus === "pending" && (
+              <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+                Confirmation requested
+              </span>
+            )}
+            {participationStatus === "declined" && (
+              <span className="rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-medium text-rose-700">
+                Confirmation declined
               </span>
             )}
           </div>
@@ -96,26 +129,56 @@ export default function ActivityCard({
           )}
         </div>
 
-        {(showDelete || showSchoolVerification) && (
+        {(showDelete || schoolCanConfirm || schoolCanRemoveConfirmation) && (
           <div className="flex shrink-0 flex-col items-end gap-2">
-            {showSchoolVerification && (
+            {showDelete &&
+              activity.opportunity_id &&
+              participationStatus === "confirmed" && (
+                <Button
+                  href={`/opportunities/${activity.opportunity_id}`}
+                  variant="outline"
+                  size="sm"
+                >
+                  Share experience
+                </Button>
+              )}
+            {schoolCanConfirm && (
               <Button
                 type="button"
-                variant={activity.school_verified ? "outline" : "primary"}
+                variant="primary"
                 size="sm"
                 onClick={handleVerification}
                 disabled={isPending}
-                className={
-                  activity.school_verified
-                    ? "text-slate-700"
-                    : "bg-emerald-600 hover:bg-emerald-700"
-                }
+                className="bg-emerald-600 hover:bg-emerald-700"
+              >
+                {isPending ? "Saving…" : "Confirm participation"}
+              </Button>
+            )}
+            {schoolCanRemoveConfirmation && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleVerification}
+                disabled={isPending}
+                className="text-slate-700"
+              >
+                {isPending ? "Saving…" : "Remove confirmation"}
+              </Button>
+            )}
+            {canRequestConfirmation && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleRequestConfirmation}
+                disabled={isPending}
               >
                 {isPending
-                  ? "Saving…"
-                  : activity.school_verified
-                    ? "Remove verification"
-                    : "Verify activity"}
+                  ? "Sending…"
+                  : participationStatus === "pending"
+                    ? "Resend confirmation"
+                    : "Request confirmation"}
               </Button>
             )}
             {showDelete && (

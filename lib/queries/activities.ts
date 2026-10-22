@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Activity } from "@/lib/types";
+import type { Activity, OrganizationParticipationRequest } from "@/lib/types";
 
 export async function getActivities(): Promise<Activity[]> {
   const supabase = await createClient();
@@ -88,4 +88,50 @@ export async function getActivityById(id: string): Promise<Activity | null> {
   }
 
   return data as Activity;
+}
+
+/** True when the signed-in student has confirmed participation for this listing. */
+export async function hasConfirmedParticipation(
+  opportunityId: string,
+): Promise<boolean> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return false;
+
+  const { data, error } = await supabase
+    .from("activities")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("opportunity_id", opportunityId)
+    .eq("participation_status", "confirmed")
+    .limit(1);
+
+  if (error) {
+    console.error("Failed to check participation confirmation:", error.message);
+    return false;
+  }
+
+  return Boolean(data?.length);
+}
+
+/** Organization-scoped queue for listings created by the signed-in organization. */
+export async function getOrganizationParticipationRequests(): Promise<
+  OrganizationParticipationRequest[]
+> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc(
+    "get_organization_participation_requests",
+  );
+
+  if (error) {
+    console.error("Failed to load organization participation requests:", error.message);
+    return [];
+  }
+
+  return (data ?? []) as OrganizationParticipationRequest[];
 }
