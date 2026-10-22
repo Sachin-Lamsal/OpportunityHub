@@ -1,8 +1,9 @@
 -- ============================================================================
 -- OpportunityHub — verified participation and student experience reviews
 --
--- Run after migration-school-student-enhancements.sql.
--- This migration is safe to re-run.
+-- This migration is self-contained and safe to re-run. It also creates the
+-- legacy school-verification columns when an older project has not run the
+-- school/student enhancement migration yet.
 --
 -- It keeps the existing school_verified fields for backwards compatibility,
 -- while adding a generic participation record that can be confirmed by either
@@ -10,11 +11,18 @@
 -- ============================================================================
 
 alter table public.activities
+  add column if not exists school_verified boolean not null default false,
+  add column if not exists school_verified_at timestamptz,
+  add column if not exists school_verified_by uuid references auth.users (id) on delete set null,
   add column if not exists participation_status text not null default 'unverified',
   add column if not exists participation_requested_at timestamptz,
   add column if not exists participation_confirmed_at timestamptz,
   add column if not exists participation_confirmed_by uuid references auth.users (id) on delete set null,
   add column if not exists participation_confirmed_by_type text;
+
+create index if not exists activities_school_verified_idx
+  on public.activities (school_verified)
+  where school_verified = true;
 
 do $$
 begin
