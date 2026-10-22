@@ -91,6 +91,26 @@ export default function AuthPortalChooser({ mode, error, verified }: AuthPortalC
             </Card>
           </Link>
         ))}
+
+        {isLogin && (
+          <Link href="/login/admin" className="block">
+            <Card className="border-slate-300 bg-slate-50 transition-colors hover:border-slate-400">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-900">
+                    Administrator access
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Review discovery, publisher, and platform administration work.
+                  </p>
+                </div>
+                <span className="shrink-0 text-sm font-medium text-slate-700">
+                  Log in →
+                </span>
+              </div>
+            </Card>
+          </Link>
+        )}
       </div>
 
       <p className="text-center text-sm text-slate-600">

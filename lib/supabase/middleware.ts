@@ -42,6 +42,10 @@ function isAuthRoute(pathname: string): boolean {
   );
 }
 
+function loginPathForProtectedRoute(pathname: string): "/login" | "/login/admin" {
+  return pathname.startsWith("/admin") ? "/login/admin" : "/login";
+}
+
 function routeForSignedOutVisitor(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -50,7 +54,7 @@ function routeForSignedOutVisitor(request: NextRequest) {
   }
 
   const url = request.nextUrl.clone();
-  url.pathname = "/login";
+  url.pathname = loginPathForProtectedRoute(pathname);
   return NextResponse.redirect(url);
 }
 
@@ -97,7 +101,7 @@ export async function updateSession(request: NextRequest) {
 
   if (!user && !isPublicRoute(pathname)) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = loginPathForProtectedRoute(pathname);
     return NextResponse.redirect(url);
   }
 
@@ -128,7 +132,7 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  if (user && isAuthRoute(pathname)) {
+  if (user && isAuthRoute(pathname) && pathname !== "/login/admin") {
     const url = request.nextUrl.clone();
     url.pathname = dashboardPathFor(accountType);
     return NextResponse.redirect(url);

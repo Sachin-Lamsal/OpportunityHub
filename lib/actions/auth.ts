@@ -400,6 +400,82 @@ export async function login(
   return { redirectTo: dashboardPathFor(accountType) };
 }
 
+/**
+ * Signs in an administrator and verifies the role from `admin_roles` before
+ * allowing access to the admin workspace. An authenticated non-admin is
+ * immediately signed back out instead of retaining an unintended session.
+ */
+export async function loginAdmin(
+  _prevState: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  const email = (formData.get("email") as string)?.trim();
+  const password = formData.get("password") as string;
+
+  if (!email || !password) {
+    return { error: "Please enter your email and password." };
+  }
+
+  if (!hasSupabaseEnv()) {
+    return {
+      error:
+        describeSupabaseEnvProblem() ??
+        "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local.",
+    };
+  }
+
+  const supabase = await createClient();
+  let error;
+
+  try {
+    ({ error } = await supabase.auth.signInWithPassword({ email, password }));
+  } catch {
+    return {
+      error:
+        "Could not reach Supabase. Check NEXT_PUBLIC_SUPABASE_URL in .env.local and your network connection.",
+    };
+  }
+
+  if (error) {
+    const rawMessage = (error.message || "").trim();
+    if (rawMessage.toLowerCase().includes("email not confirmed")) {
+      return {
+        error:
+          "Email not confirmed yet. Check your email for the confirmation link, or disable 'Confirm email' in Supabase Dashboard (Authentication → Providers → Email).",
+      };
+    }
+    return { error: "Login failed. Please check your credentials and try again." };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Could not verify your session. Please try again." };
+  }
+
+  const { data: adminRole, error: roleError } = await supabase
+    .from("admin_roles")
+    .select("role")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const isAdmin = adminRole?.role === "admin" || adminRole?.role === "superadmin";
+  if (roleError || !isAdmin) {
+    if (roleError) {
+      console.error("Failed to verify administrator role:", roleError.message);
+    }
+    await supabase.auth.signOut();
+    return {
+      error: "This account does not have administrator access.",
+    };
+  }
+
+  revalidatePath("/", "layout");
+  return { redirectTo: "/admin/dashboard" };
+}
+
 export async function logout(formData?: FormData) {
   const accountType = formData
     ? parseAccountType(formData.get("account_type"))
