@@ -10,40 +10,40 @@ import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 
 const features = [
   {
+    number: "01",
     title: "Discover opportunities",
     description:
       "Browse competitions, workshops, internships, and programs relevant to your goals.",
-    icon: "🔍",
   },
   {
+    number: "02",
     title: "Track your activities",
     description:
       "Log academic work, leadership roles, service, projects, and more in one place.",
-    icon: "📋",
   },
   {
+    number: "03",
     title: "Portfolio score",
     description:
       "See a simple estimate of your portfolio strength across key categories.",
-    icon: "📊",
   },
   {
-    title: "AI suggestions",
+    number: "04",
+    title: "Tailored guidance",
     description:
       "Get practical next steps and opportunity ideas tailored to your profile.",
-    icon: "✨",
   },
   {
+    number: "05",
     title: "Build your CV",
     description:
       "Generate a clean CV from your stored activities — ready to copy and refine.",
-    icon: "📄",
   },
   {
+    number: "06",
     title: "Save what matters",
     description:
       "Bookmark opportunities you want to apply for and revisit them anytime.",
-    icon: "🔖",
   },
 ];
 
@@ -87,17 +87,18 @@ export default async function HomePage() {
         <section className="border-b border-slate-200 bg-white">
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
             <div className="mx-auto max-w-3xl text-center">
-              <p className="mb-4 inline-block rounded-full bg-indigo-50 px-4 py-1 text-sm font-medium text-indigo-700">
-                For students in Kathmandu · NEB · IGCSE · AS · A-Level
-              </p>
-              <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-md border border-indigo-200/70 bg-indigo-50/70 px-3 py-1 text-xs font-medium text-indigo-900 tracking-wide">
+                <span className="h-1.5 w-1.5 rounded-full bg-indigo-600" />
+                <span>Kathmandu · NEB · IGCSE · AS &amp; A-Level</span>
+              </div>
+              <h1 className="text-4xl font-normal tracking-tight text-slate-900 sm:text-5xl lg:text-6xl font-display">
                 {APP_NAME}
               </h1>
-              <p className="mt-6 text-lg leading-relaxed text-slate-600">
+              <p className="mt-5 text-lg leading-relaxed text-slate-600 max-w-2xl mx-auto">
                 {APP_TAGLINE}
               </p>
               <HomeHeroSearch />
-              <div className="mt-6 flex flex-col items-center justify-center gap-4 sm:flex-row">
+              <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <Button href="/opportunities" size="lg">
                   Browse opportunities
                 </Button>
@@ -117,7 +118,7 @@ export default async function HomePage() {
           <section className="border-b border-slate-200 bg-slate-50/80 py-14 sm:py-16">
             <div className="mx-auto max-w-6xl px-4 sm:px-6">
               <div className="mb-8 text-center">
-                <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+                <h2 className="font-display text-2xl font-normal text-slate-900 sm:text-3xl tracking-tight">
                   Discover what students are applying to
                 </h2>
                 <p className="mt-2 text-slate-600">
@@ -156,7 +157,7 @@ export default async function HomePage() {
         <section id="features" className="py-16 sm:py-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="mb-12 text-center">
-              <h2 className="text-3xl font-bold text-slate-900">
+              <h2 className="font-display text-3xl font-normal text-slate-900 sm:text-4xl tracking-tight">
                 Everything you need for your portfolio
               </h2>
               <p className="mt-3 text-slate-600">
@@ -166,11 +167,19 @@ export default async function HomePage() {
 
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {features.map((feature) => (
-                <Card key={feature.title} className="hover:border-indigo-200 transition-colors">
-                  <span className="text-2xl" role="img" aria-hidden="true">
-                    {feature.icon}
-                  </span>
-                  <h3 className="mt-3 text-lg font-semibold text-slate-900">
+                <Card
+                  key={feature.title}
+                  className="p-6 transition-all hover:border-slate-300"
+                >
+                  <div className="flex items-baseline justify-between border-b border-slate-100 pb-3">
+                    <span className="font-mono text-xs font-semibold tracking-wider text-indigo-700">
+                      {feature.number}
+                    </span>
+                    <span className="text-[11px] font-medium uppercase tracking-wider text-slate-400">
+                      Feature
+                    </span>
+                  </div>
+                  <h3 className="mt-3 text-base font-semibold text-slate-900">
                     {feature.title}
                   </h3>
                   <p className="mt-2 text-sm leading-relaxed text-slate-600">
@@ -186,20 +195,22 @@ export default async function HomePage() {
         <section id="how-it-works" className="border-y border-slate-200 bg-white py-16 sm:py-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="mb-12 text-center">
-              <h2 className="text-3xl font-bold text-slate-900">How it works</h2>
+              <h2 className="font-display text-3xl font-normal text-slate-900 sm:text-4xl tracking-tight">How it works</h2>
               <p className="mt-3 text-slate-600">Three simple steps to get started.</p>
             </div>
 
             <div className="grid gap-8 md:grid-cols-3">
               {steps.map((item) => (
-                <div key={item.step} className="text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-600 text-lg font-bold text-white">
-                    {item.step}
+                <div key={item.step} className="border-t border-slate-200 pt-6">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-semibold uppercase tracking-wider text-indigo-700">
+                      Step 0{item.step}
+                    </span>
                   </div>
-                  <h3 className="mt-4 text-lg font-semibold text-slate-900">
+                  <h3 className="mt-3 text-lg font-semibold text-slate-900">
                     {item.title}
                   </h3>
-                  <p className="mt-2 text-sm text-slate-600">{item.description}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600">{item.description}</p>
                 </div>
               ))}
             </div>
@@ -209,19 +220,18 @@ export default async function HomePage() {
         {/* CTA */}
         <section className="py-16 sm:py-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <Card className="bg-indigo-600 border-indigo-600 text-center text-white">
-              <h2 className="text-2xl font-bold sm:text-3xl">
+            <Card className="bg-indigo-600 border-indigo-600 text-center text-white p-10 sm:p-14">
+              <h2 className="font-display text-3xl font-normal sm:text-4xl text-white tracking-tight">
                 Ready to build your portfolio?
               </h2>
-              <p className="mx-auto mt-3 max-w-xl text-indigo-100">
+              <p className="mx-auto mt-3 max-w-xl text-indigo-100/90 text-base leading-relaxed">
                 Join OpportunityHub and start discovering opportunities that match your goals.
               </p>
               <div className="mt-8">
                 <Button
                   href="/signup"
-                  variant="outline"
                   size="lg"
-                  className="border-white bg-white text-indigo-700 hover:bg-indigo-50"
+                  className="border border-white/20 bg-white text-indigo-950 hover:bg-slate-50 font-medium px-8 shadow-sm"
                 >
                   Create your free account
                 </Button>
