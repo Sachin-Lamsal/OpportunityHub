@@ -1,5 +1,6 @@
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import Link from "next/link";
 import { connection } from "next/server";
 import Button from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -84,16 +85,14 @@ export default async function HomePage() {
 
       <main className="flex-1">
         {/* Hero */}
-        <section className="relative isolate overflow-hidden border-b border-slate-200 bg-slate-50/80">
-          <div aria-hidden="true" className="absolute inset-y-0 left-[calc(50%-38rem)] hidden w-px bg-indigo-200/60 lg:block" />
-          <div aria-hidden="true" className="absolute -right-32 top-0 h-80 w-80 rounded-full bg-indigo-100/35 blur-3xl" />
-          <div className="relative mx-auto grid max-w-6xl gap-12 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[minmax(0,1fr)_15rem] lg:items-end">
+        <section className="border-b border-slate-200 bg-slate-50/80">
+          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
             <div className="max-w-3xl lg:text-left">
               <div className="mb-4 inline-flex items-center gap-2 rounded-md border border-indigo-200/70 bg-indigo-50/70 px-3 py-1 text-xs font-medium tracking-wide text-indigo-900">
                 <span className="h-1.5 w-1.5 rounded-full bg-indigo-600" />
                 <span>Kathmandu · NEB · IGCSE · AS &amp; A-Level</span>
               </div>
-              <h1 className="text-4xl font-normal tracking-tight text-slate-900 sm:text-5xl lg:text-6xl font-display">
+              <h1 className="font-display text-4xl font-normal tracking-tight text-slate-900 sm:text-5xl">
                 {APP_NAME}
               </h1>
               <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-600">
@@ -112,16 +111,6 @@ export default async function HomePage() {
                 </Button>
               </div>
             </div>
-            <aside className="hidden border-l border-slate-300 pl-5 lg:block">
-              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.15em] text-indigo-700">
-                A considered approach
-              </p>
-              <ol className="mt-5 space-y-4 text-sm text-slate-600">
-                <li className="border-b border-slate-200 pb-4"><span className="mr-2 font-mono text-xs text-slate-400">01</span>Find the right fit</li>
-                <li className="border-b border-slate-200 pb-4"><span className="mr-2 font-mono text-xs text-slate-400">02</span>Build a real record</li>
-                <li><span className="mr-2 font-mono text-xs text-slate-400">03</span>Apply with clarity</li>
-              </ol>
-            </aside>
           </div>
         </section>
 
@@ -232,21 +221,25 @@ export default async function HomePage() {
         {/* CTA */}
         <section className="py-16 sm:py-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <Card className="bg-brand-gradient border-indigo-700 text-center text-white p-10 sm:p-14">
-              <h2 className="font-display text-3xl font-normal sm:text-4xl text-white tracking-tight">
-                Ready to build your portfolio?
-              </h2>
-              <p className="mx-auto mt-3 max-w-xl text-indigo-100/90 text-base leading-relaxed">
-                Join OpportunityHub and start discovering opportunities that match your goals.
-              </p>
-              <div className="mt-8">
-                <Button
+            <Card className="border-0 bg-[var(--brand)] p-8 text-left text-white sm:p-10">
+              <div className="flex flex-col justify-between gap-7 sm:flex-row sm:items-end">
+                <div className="max-w-xl">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-indigo-200">
+                    Start simply
+                  </p>
+                  <h2 className="mt-3 font-display text-3xl font-normal tracking-tight text-white sm:text-4xl">
+                    Build a portfolio you can stand behind.
+                  </h2>
+                  <p className="mt-3 text-base leading-relaxed text-slate-200">
+                    Keep your activities, opportunities, and next steps in one clear place.
+                  </p>
+                </div>
+                <Link
                   href="/signup"
-                  size="lg"
-                  className="border border-white/20 bg-white text-indigo-950 hover:bg-slate-50 font-medium px-8 shadow-sm"
+                  className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg bg-white px-5 text-sm font-semibold text-[var(--brand)] shadow-sm transition-colors hover:bg-slate-100"
                 >
-                  Create your free account
-                </Button>
+                  Create an account
+                </Link>
               </div>
             </Card>
           </div>

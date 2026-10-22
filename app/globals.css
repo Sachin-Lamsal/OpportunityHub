@@ -13,73 +13,73 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* ---- Brand (Rich Terracotta / Warm Rust - Editorial & Human) ----------- */
-  --color-brand-50:  oklch(0.975 0.018 45);
-  --color-brand-100: oklch(0.940 0.040 45);
-  --color-brand-200: oklch(0.885 0.070 45);
-  --color-brand-300: oklch(0.800 0.110 44);
-  --color-brand-400: oklch(0.700 0.150 43);
-  --color-brand-500: oklch(0.620 0.175 42);
-  --color-brand-600: oklch(0.535 0.185 40);
-  --color-brand-700: oklch(0.450 0.170 38);
-  --color-brand-800: oklch(0.370 0.140 37);
-  --color-brand-900: oklch(0.300 0.100 36);
-  --color-brand-950: oklch(0.200 0.060 36);
+  /* ---- Brand (Clear, academic navy) ------------------------------------- */
+  --color-brand-50:  oklch(0.975 0.012 245);
+  --color-brand-100: oklch(0.945 0.025 245);
+  --color-brand-200: oklch(0.890 0.045 245);
+  --color-brand-300: oklch(0.790 0.070 245);
+  --color-brand-400: oklch(0.670 0.090 245);
+  --color-brand-500: oklch(0.560 0.095 245);
+  --color-brand-600: oklch(0.460 0.085 245);
+  --color-brand-700: oklch(0.380 0.075 245);
+  --color-brand-800: oklch(0.300 0.060 245);
+  --color-brand-900: oklch(0.240 0.048 245);
+  --color-brand-950: oklch(0.175 0.038 245);
 
-  /* ---- Slate / Neutral override (Warm Paper, Sand, Warm Charcoal Ink) ---- */
-  --color-slate-50:  oklch(0.985 0.006 80);
-  --color-slate-100: oklch(0.965 0.009 80);
-  --color-slate-200: oklch(0.905 0.012 80);
-  --color-slate-300: oklch(0.835 0.016 80);
-  --color-slate-400: oklch(0.690 0.018 75);
-  --color-slate-500: oklch(0.550 0.018 65);
-  --color-slate-600: oklch(0.440 0.018 60);
-  --color-slate-700: oklch(0.340 0.016 60);
-  --color-slate-800: oklch(0.250 0.014 55);
-  --color-slate-900: oklch(0.180 0.012 50);
-  --color-slate-950: oklch(0.120 0.010 50);
+  /* ---- Slate / Neutral override (Cool paper and deep ink) --------------- */
+  --color-slate-50:  oklch(0.985 0.004 250);
+  --color-slate-100: oklch(0.965 0.007 250);
+  --color-slate-200: oklch(0.910 0.010 250);
+  --color-slate-300: oklch(0.830 0.014 250);
+  --color-slate-400: oklch(0.680 0.018 250);
+  --color-slate-500: oklch(0.540 0.020 250);
+  --color-slate-600: oklch(0.430 0.022 250);
+  --color-slate-700: oklch(0.335 0.025 250);
+  --color-slate-800: oklch(0.255 0.028 250);
+  --color-slate-900: oklch(0.195 0.030 250);
+  --color-slate-950: oklch(0.135 0.025 250);
 
-  /* ---- Indigo / Brand override (Maps existing indigo classes to Terracotta) */
-  --color-indigo-50:  oklch(0.975 0.018 45);
-  --color-indigo-100: oklch(0.940 0.040 45);
-  --color-indigo-200: oklch(0.885 0.070 45);
-  --color-indigo-300: oklch(0.800 0.110 44);
-  --color-indigo-400: oklch(0.700 0.150 43);
-  --color-indigo-500: oklch(0.620 0.175 42);
-  --color-indigo-600: oklch(0.535 0.185 40);
-  --color-indigo-700: oklch(0.450 0.170 38);
-  --color-indigo-800: oklch(0.370 0.140 37);
-  --color-indigo-900: oklch(0.300 0.100 36);
-  --color-indigo-950: oklch(0.200 0.060 36);
+  /* ---- Indigo maps existing interface accents to the navy system -------- */
+  --color-indigo-50:  oklch(0.975 0.012 245);
+  --color-indigo-100: oklch(0.945 0.025 245);
+  --color-indigo-200: oklch(0.890 0.045 245);
+  --color-indigo-300: oklch(0.790 0.070 245);
+  --color-indigo-400: oklch(0.670 0.090 245);
+  --color-indigo-500: oklch(0.560 0.095 245);
+  --color-indigo-600: oklch(0.460 0.085 245);
+  --color-indigo-700: oklch(0.380 0.075 245);
+  --color-indigo-800: oklch(0.300 0.060 245);
+  --color-indigo-900: oklch(0.240 0.048 245);
+  --color-indigo-950: oklch(0.175 0.038 245);
 
-  /* ---- Violet override (Maps violet to Warm Ochre / Honey Amber) --------- */
-  --color-violet-50:  oklch(0.975 0.025 80);
-  --color-violet-100: oklch(0.940 0.055 80);
-  --color-violet-200: oklch(0.880 0.090 78);
-  --color-violet-300: oklch(0.800 0.130 75);
-  --color-violet-400: oklch(0.720 0.155 72);
-  --color-violet-500: oklch(0.640 0.165 70);
-  --color-violet-600: oklch(0.560 0.160 68);
-  --color-violet-700: oklch(0.460 0.145 65);
-  --color-violet-800: oklch(0.380 0.120 62);
-  --color-violet-900: oklch(0.300 0.090 60);
-  --color-violet-950: oklch(0.200 0.060 60);
+  /* ---- Violet maps secondary accents to a muted blue-grey --------------- */
+  --color-violet-50:  oklch(0.975 0.010 215);
+  --color-violet-100: oklch(0.945 0.020 215);
+  --color-violet-200: oklch(0.890 0.035 215);
+  --color-violet-300: oklch(0.800 0.050 215);
+  --color-violet-400: oklch(0.690 0.065 215);
+  --color-violet-500: oklch(0.580 0.070 215);
+  --color-violet-600: oklch(0.490 0.070 215);
+  --color-violet-700: oklch(0.400 0.060 215);
+  --color-violet-800: oklch(0.320 0.050 215);
+  --color-violet-900: oklch(0.250 0.040 215);
+  --color-violet-950: oklch(0.180 0.030 215);
 
-  /* ---- Accent (Muted Sage & Warm Ochre) ---------------------------------- */
-  --color-accent-400: oklch(0.65 0.120 145);
-  --color-accent-500: oklch(0.55 0.110 145);
-  --color-accent-600: oklch(0.47 0.100 145);
+  /* ---- Accent (restrained sage for positive states) --------------------- */
+  --color-accent-400: oklch(0.66 0.080 170);
+  --color-accent-500: oklch(0.56 0.075 170);
+  --color-accent-600: oklch(0.47 0.065 170);
 
   /* ---- Neutral Tokens --------------------------------------------------- */
-  --color-canvas:      oklch(0.985 0.006 80);
+  --color-canvas:      oklch(0.985 0.004 250);
   --color-surface:     oklch(1 0 0);
-  --color-surface-2:   oklch(0.965 0.009 80);
-  --color-surface-3:   oklch(0.940 0.012 80);
-  --color-line:        oklch(0.905 0.012 80);
-  --color-line-strong: oklch(0.835 0.016 80);
-  --color-ink:         oklch(0.180 0.012 50);
-  --color-ink-soft:    oklch(0.340 0.016 60);
-  --color-muted:       oklch(0.550 0.018 65);
+  --color-surface-2:   oklch(0.965 0.007 250);
+  --color-surface-3:   oklch(0.940 0.010 250);
+  --color-line:        oklch(0.905 0.010 250);
+  --color-line-strong: oklch(0.835 0.014 250);
+  --color-ink:         oklch(0.195 0.030 250);
+  --color-ink-soft:    oklch(0.335 0.025 250);
+  --color-muted:       oklch(0.540 0.020 250);
 
   /* ---- Status ----------------------------------------------------------- */
   --color-success: oklch(0.60 0.140 148);
@@ -92,21 +92,20 @@
   --color-info-soft:    oklch(0.96 0.025 220);
 
   /* ---- Dark palette ----------------------------------------------------- */
-  --color-canvas-dark:    oklch(0.16 0.010 50);
-  --color-surface-dark:   oklch(0.20 0.012 50);
-  --color-surface-2-dark: oklch(0.24 0.014 50);
-  --color-surface-3-dark: oklch(0.28 0.016 50);
-  --color-line-dark:      oklch(0.30 0.014 50);
-  --color-line-strong-dark: oklch(0.38 0.016 50);
-  --color-ink-dark:       oklch(0.96 0.006 70);
-  --color-ink-soft-dark:  oklch(0.80 0.012 70);
-  --color-muted-dark:     oklch(0.66 0.014 70);
+  --color-canvas-dark:    oklch(0.16 0.020 250);
+  --color-surface-dark:   oklch(0.20 0.022 250);
+  --color-surface-2-dark: oklch(0.24 0.024 250);
+  --color-surface-3-dark: oklch(0.28 0.026 250);
+  --color-line-dark:      oklch(0.32 0.024 250);
+  --color-line-strong-dark: oklch(0.40 0.024 250);
+  --color-ink-dark:       oklch(0.96 0.006 250);
+  --color-ink-soft-dark:  oklch(0.80 0.012 250);
+  --color-muted-dark:     oklch(0.66 0.014 250);
 
   /* ---- Type ------------------------------------------------------------- */
-  --font-sans: "Inter var", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-display: "Charter", "Bitstream Charter", "Iowan Old Style", "Sitka Text",
-    "Cambria", Georgia, serif;
+  --font-sans: "Avenir Next", "Segoe UI", -apple-system, BlinkMacSystemFont,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", monospace;
 
@@ -144,7 +143,7 @@
     --muted: var(--color-muted);
     --brand: var(--color-brand-600);
     --brand-hover: var(--color-brand-700);
-    --on-brand: oklch(0.99 0.005 80);
+    --on-brand: oklch(0.99 0.005 250);
   }
 
   .dark {
@@ -159,7 +158,7 @@
     --muted: var(--color-muted-dark);
     --brand: var(--color-brand-400);
     --brand-hover: var(--color-brand-300);
-    --on-brand: oklch(0.18 0.015 50);
+    --on-brand: oklch(0.18 0.015 250);
   }
 
   * {
@@ -217,7 +216,7 @@
     background-image: linear-gradient(
       140deg,
       var(--color-brand-600) 0%,
-      var(--color-brand-700) 100%
+      var(--color-brand-800) 100%
     );
   }
 
@@ -225,7 +224,7 @@
     background-image: linear-gradient(
       110deg,
       var(--color-brand-600),
-      oklch(0.62 0.16 45)
+      var(--color-brand-500)
     );
     -webkit-background-clip: text;
     background-clip: text;
