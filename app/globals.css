@@ -13,72 +13,117 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* ---- Brand ------------------------------------------------------------ */
-  --color-brand-50:  oklch(0.97 0.014 285);
-  --color-brand-100: oklch(0.94 0.031 285);
-  --color-brand-200: oklch(0.89 0.062 285);
-  --color-brand-300: oklch(0.81 0.101 285);
-  --color-brand-400: oklch(0.70 0.152 285);
-  --color-brand-500: oklch(0.60 0.190 285);
-  --color-brand-600: oklch(0.52 0.208 285);
-  --color-brand-700: oklch(0.45 0.196 285);
-  --color-brand-800: oklch(0.38 0.166 285);
-  --color-brand-900: oklch(0.32 0.132 285);
-  --color-brand-950: oklch(0.22 0.090 285);
+  /* ---- Brand (Rich Terracotta / Warm Rust - Editorial & Human) ----------- */
+  --color-brand-50:  oklch(0.975 0.018 45);
+  --color-brand-100: oklch(0.940 0.040 45);
+  --color-brand-200: oklch(0.885 0.070 45);
+  --color-brand-300: oklch(0.800 0.110 44);
+  --color-brand-400: oklch(0.700 0.150 43);
+  --color-brand-500: oklch(0.620 0.175 42);
+  --color-brand-600: oklch(0.535 0.185 40);
+  --color-brand-700: oklch(0.450 0.170 38);
+  --color-brand-800: oklch(0.370 0.140 37);
+  --color-brand-900: oklch(0.300 0.100 36);
+  --color-brand-950: oklch(0.200 0.060 36);
 
-  /* ---- Accent (violet, used for gradients and highlights) ---------------- */
-  --color-accent-400: oklch(0.70 0.176 300);
-  --color-accent-500: oklch(0.62 0.202 300);
-  --color-accent-600: oklch(0.55 0.208 300);
+  /* ---- Slate / Neutral override (Warm Paper, Sand, Warm Charcoal Ink) ---- */
+  --color-slate-50:  oklch(0.985 0.006 80);
+  --color-slate-100: oklch(0.965 0.009 80);
+  --color-slate-200: oklch(0.905 0.012 80);
+  --color-slate-300: oklch(0.835 0.016 80);
+  --color-slate-400: oklch(0.690 0.018 75);
+  --color-slate-500: oklch(0.550 0.018 65);
+  --color-slate-600: oklch(0.440 0.018 60);
+  --color-slate-700: oklch(0.340 0.016 60);
+  --color-slate-800: oklch(0.250 0.014 55);
+  --color-slate-900: oklch(0.180 0.012 50);
+  --color-slate-950: oklch(0.120 0.010 50);
 
-  /* ---- Neutral ---------------------------------------------------------- */
-  --color-canvas:      oklch(0.985 0.004 265);
+  /* ---- Indigo / Brand override (Maps existing indigo classes to Terracotta) */
+  --color-indigo-50:  oklch(0.975 0.018 45);
+  --color-indigo-100: oklch(0.940 0.040 45);
+  --color-indigo-200: oklch(0.885 0.070 45);
+  --color-indigo-300: oklch(0.800 0.110 44);
+  --color-indigo-400: oklch(0.700 0.150 43);
+  --color-indigo-500: oklch(0.620 0.175 42);
+  --color-indigo-600: oklch(0.535 0.185 40);
+  --color-indigo-700: oklch(0.450 0.170 38);
+  --color-indigo-800: oklch(0.370 0.140 37);
+  --color-indigo-900: oklch(0.300 0.100 36);
+  --color-indigo-950: oklch(0.200 0.060 36);
+
+  /* ---- Violet override (Maps violet to Warm Ochre / Honey Amber) --------- */
+  --color-violet-50:  oklch(0.975 0.025 80);
+  --color-violet-100: oklch(0.940 0.055 80);
+  --color-violet-200: oklch(0.880 0.090 78);
+  --color-violet-300: oklch(0.800 0.130 75);
+  --color-violet-400: oklch(0.720 0.155 72);
+  --color-violet-500: oklch(0.640 0.165 70);
+  --color-violet-600: oklch(0.560 0.160 68);
+  --color-violet-700: oklch(0.460 0.145 65);
+  --color-violet-800: oklch(0.380 0.120 62);
+  --color-violet-900: oklch(0.300 0.090 60);
+  --color-violet-950: oklch(0.200 0.060 60);
+
+  /* ---- Accent (Muted Sage & Warm Ochre) ---------------------------------- */
+  --color-accent-400: oklch(0.65 0.120 145);
+  --color-accent-500: oklch(0.55 0.110 145);
+  --color-accent-600: oklch(0.47 0.100 145);
+
+  /* ---- Neutral Tokens --------------------------------------------------- */
+  --color-canvas:      oklch(0.985 0.006 80);
   --color-surface:     oklch(1 0 0);
-  --color-surface-2:   oklch(0.978 0.005 265);
-  --color-surface-3:   oklch(0.958 0.007 265);
-  --color-line:        oklch(0.917 0.010 265);
-  --color-line-strong: oklch(0.860 0.014 265);
-  --color-ink:         oklch(0.24 0.028 270);
-  --color-ink-soft:    oklch(0.44 0.024 270);
-  --color-muted:       oklch(0.56 0.020 270);
+  --color-surface-2:   oklch(0.965 0.009 80);
+  --color-surface-3:   oklch(0.940 0.012 80);
+  --color-line:        oklch(0.905 0.012 80);
+  --color-line-strong: oklch(0.835 0.016 80);
+  --color-ink:         oklch(0.180 0.012 50);
+  --color-ink-soft:    oklch(0.340 0.016 60);
+  --color-muted:       oklch(0.550 0.018 65);
 
   /* ---- Status ----------------------------------------------------------- */
-  --color-success: oklch(0.62 0.150 155);
-  --color-success-soft: oklch(0.95 0.045 155);
-  --color-warning: oklch(0.74 0.150 75);
-  --color-warning-soft: oklch(0.96 0.055 85);
-  --color-danger:  oklch(0.58 0.196 25);
-  --color-danger-soft:  oklch(0.96 0.035 25);
-  --color-info:    oklch(0.62 0.130 235);
-  --color-info-soft:    oklch(0.96 0.030 235);
+  --color-success: oklch(0.60 0.140 148);
+  --color-success-soft: oklch(0.96 0.035 148);
+  --color-warning: oklch(0.72 0.145 75);
+  --color-warning-soft: oklch(0.96 0.050 80);
+  --color-danger:  oklch(0.56 0.185 28);
+  --color-danger-soft:  oklch(0.96 0.035 28);
+  --color-info:    oklch(0.58 0.120 220);
+  --color-info-soft:    oklch(0.96 0.025 220);
 
   /* ---- Dark palette ----------------------------------------------------- */
-  --color-canvas-dark:    oklch(0.17 0.018 270);
-  --color-surface-dark:   oklch(0.215 0.020 270);
-  --color-surface-2-dark: oklch(0.255 0.022 270);
-  --color-surface-3-dark: oklch(0.300 0.024 270);
-  --color-line-dark:      oklch(0.320 0.022 270);
-  --color-line-strong-dark: oklch(0.410 0.024 270);
-  --color-ink-dark:       oklch(0.97 0.006 270);
-  --color-ink-soft-dark:  oklch(0.80 0.014 270);
-  --color-muted-dark:     oklch(0.68 0.016 270);
+  --color-canvas-dark:    oklch(0.16 0.010 50);
+  --color-surface-dark:   oklch(0.20 0.012 50);
+  --color-surface-2-dark: oklch(0.24 0.014 50);
+  --color-surface-3-dark: oklch(0.28 0.016 50);
+  --color-line-dark:      oklch(0.30 0.014 50);
+  --color-line-strong-dark: oklch(0.38 0.016 50);
+  --color-ink-dark:       oklch(0.96 0.006 70);
+  --color-ink-soft-dark:  oklch(0.80 0.012 70);
+  --color-muted-dark:     oklch(0.66 0.014 70);
 
   /* ---- Type ------------------------------------------------------------- */
-  --font-sans: "Inter var", "Inter", ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-display: "Inter var", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter var", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Charter", "Bitstream Charter", "Iowan Old Style", "Sitka Text",
+    "Cambria", Georgia, serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", monospace;
 
-  /* ---- Elevation (layered, soft) ---------------------------------------- */
-  --shadow-xs: 0 1px 2px 0 oklch(0.24 0.028 270 / 0.05);
-  --shadow-sm: 0 1px 3px 0 oklch(0.24 0.028 270 / 0.07),
-               0 1px 2px -1px oklch(0.24 0.028 270 / 0.06);
-  --shadow-md: 0 4px 12px -2px oklch(0.24 0.028 270 / 0.09),
-               0 2px 4px -2px oklch(0.24 0.028 270 / 0.05);
-  --shadow-lg: 0 12px 28px -6px oklch(0.24 0.028 270 / 0.12),
-               0 4px 8px -4px oklch(0.24 0.028 270 / 0.05);
-  --shadow-pop: 0 24px 56px -12px oklch(0.24 0.028 270 / 0.20);
+  /* ---- Corner Radii (Crisp, tailored, not overly bulbous) --------------- */
+  --radius-xl: 0.625rem;
+  --radius-2xl: 0.75rem;
+  --radius-3xl: 1rem;
+
+  /* ---- Elevation (Warm, layered, soft shadows) -------------------------- */
+  --shadow-xs: 0 1px 2px 0 oklch(0.18 0.012 50 / 0.04);
+  --shadow-sm: 0 1px 3px 0 oklch(0.18 0.012 50 / 0.06),
+               0 1px 2px -1px oklch(0.18 0.012 50 / 0.04);
+  --shadow-md: 0 4px 12px -2px oklch(0.18 0.012 50 / 0.07),
+               0 2px 4px -2px oklch(0.18 0.012 50 / 0.03);
+  --shadow-lg: 0 12px 28px -6px oklch(0.18 0.012 50 / 0.09),
+               0 4px 8px -4px oklch(0.18 0.012 50 / 0.03);
+  --shadow-pop: 0 24px 56px -12px oklch(0.18 0.012 50 / 0.14);
 
   /* ---- Motion ------------------------------------------------------------ */
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
@@ -99,7 +144,7 @@
     --muted: var(--color-muted);
     --brand: var(--color-brand-600);
     --brand-hover: var(--color-brand-700);
-    --on-brand: oklch(0.99 0.005 270);
+    --on-brand: oklch(0.99 0.005 80);
   }
 
   .dark {
@@ -114,7 +159,7 @@
     --muted: var(--color-muted-dark);
     --brand: var(--color-brand-400);
     --brand-hover: var(--color-brand-300);
-    --on-brand: oklch(0.18 0.02 270);
+    --on-brand: oklch(0.18 0.015 50);
   }
 
   * {
@@ -162,20 +207,20 @@
 }
 
 @layer components {
-  /* ---- Brand gradient used for hero sections and primary emphasis ------- */
+  /* ---- Brand tone used for primary buttons and emphasis ----------------- */
   .bg-brand-gradient {
     background-image: linear-gradient(
-      135deg,
+      140deg,
       var(--color-brand-600) 0%,
-      var(--color-accent-500) 100%
+      var(--color-brand-700) 100%
     );
   }
 
   .text-gradient {
     background-image: linear-gradient(
-      100deg,
-      var(--color-brand-500),
-      var(--color-accent-500)
+      110deg,
+      var(--color-brand-600),
+      oklch(0.62 0.16 45)
     );
     -webkit-background-clip: text;
     background-clip: text;
