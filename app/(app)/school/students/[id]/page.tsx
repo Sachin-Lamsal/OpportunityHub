@@ -47,12 +47,20 @@ export default async function SchoolStudentDetailPage({
         title={student.email}
         description="Portfolio progress for a student linked to your school."
         action={
-          <Link
-            href="/school/students"
-            className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
-          >
-            ← All students
-          </Link>
+          <div className="flex items-center gap-3">
+            <a
+              href={`mailto:${student.email}?subject=OpportunityHub%20Portfolio%20Guidance`}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 transition-colors"
+            >
+              <span>✉️</span> Email student
+            </a>
+            <Link
+              href="/school/students"
+              className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+            >
+              ← All students
+            </Link>
+          </div>
         }
       />
 
@@ -131,7 +139,11 @@ export default async function SchoolStudentDetailPage({
             Activities
           </h2>
           {activities.length > 0 ? (
-            <ActivityList activities={activities} showDelete={false} />
+            <ActivityList
+              activities={activities}
+              showDelete={false}
+              showSchoolVerification
+            />
           ) : (
             <Card className="py-8 text-center text-sm text-slate-600">
               No activities to show.

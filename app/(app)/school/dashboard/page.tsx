@@ -9,6 +9,7 @@ import {
   getOpportunitiesCreatedByUser,
   getPublisherOpportunityStats,
 } from "@/lib/queries/opportunities";
+import CopySchoolCodeButton from "@/components/school/CopySchoolCodeButton";
 import { redirect } from "next/navigation";
 
 export const metadata = {
@@ -40,7 +41,12 @@ export default async function SchoolDashboardPage() {
       <div className="space-y-8">
         <section className="grid gap-4 sm:grid-cols-3">
           <Card>
-            <p className="text-sm font-medium text-slate-500">School code</p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-medium text-slate-500">School code</p>
+              {profile.school_code && (
+                <CopySchoolCodeButton code={profile.school_code} />
+              )}
+            </div>
             <p className="mt-1 font-mono text-2xl font-bold tracking-wider text-slate-900">
               {profile.school_code ?? "—"}
             </p>

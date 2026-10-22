@@ -1,7 +1,11 @@
 "use client";
 
-import { useTransition } from "react";
-import { deleteActivity } from "@/lib/actions/activities";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import {
+  deleteActivity,
+  setSchoolActivityVerification,
+} from "@/lib/actions/activities";
 import type { Activity } from "@/lib/types";
 import { formatDate } from "@/lib/utils/format";
 import { Card } from "@/components/ui/Card";
@@ -10,6 +14,7 @@ import Button from "@/components/ui/Button";
 interface ActivityCardProps {
   activity: Activity;
   showDelete?: boolean;
+  showSchoolVerification?: boolean;
 }
 
 const categoryColors: Record<string, string> = {
@@ -24,8 +29,11 @@ const categoryColors: Record<string, string> = {
 export default function ActivityCard({
   activity,
   showDelete = true,
+  showSchoolVerification = false,
 }: ActivityCardProps) {
   const [isPending, startTransition] = useTransition();
+  const [verificationError, setVerificationError] = useState<string | null>(null);
+  const router = useRouter();
 
   function handleDelete() {
     if (!confirm("Delete this activity?")) return;
@@ -33,6 +41,23 @@ export default function ActivityCard({
     startTransition(async () => {
       const result = await deleteActivity(activity.id);
       if (result.error) alert(result.error);
+    });
+  }
+
+  function handleVerification() {
+    setVerificationError(null);
+    startTransition(async () => {
+      const result = await setSchoolActivityVerification(
+        activity.id,
+        !activity.school_verified,
+      );
+
+      if (result.error) {
+        setVerificationError(result.error);
+        return;
+      }
+
+      router.refresh();
     });
   }
 
@@ -52,6 +77,11 @@ export default function ActivityCard({
             <span className="text-xs text-slate-500">
               {formatDate(activity.date)}
             </span>
+            {activity.school_verified && (
+              <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+                ✓ Verified by school
+              </span>
+            )}
           </div>
           <h3 className="mt-2 text-base font-semibold text-slate-900">
             {activity.title}
@@ -66,19 +96,48 @@ export default function ActivityCard({
           )}
         </div>
 
-        {showDelete && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleDelete}
-            disabled={isPending}
-            className="shrink-0 text-red-600 hover:bg-red-50 hover:text-red-700"
-          >
-            {isPending ? "…" : "Delete"}
-          </Button>
+        {(showDelete || showSchoolVerification) && (
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            {showSchoolVerification && (
+              <Button
+                type="button"
+                variant={activity.school_verified ? "outline" : "primary"}
+                size="sm"
+                onClick={handleVerification}
+                disabled={isPending}
+                className={
+                  activity.school_verified
+                    ? "text-slate-700"
+                    : "bg-emerald-600 hover:bg-emerald-700"
+                }
+              >
+                {isPending
+                  ? "Saving…"
+                  : activity.school_verified
+                    ? "Remove verification"
+                    : "Verify activity"}
+              </Button>
+            )}
+            {showDelete && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleDelete}
+                disabled={isPending}
+                className="text-red-600 hover:bg-red-50 hover:text-red-700"
+              >
+                {isPending ? "…" : "Delete"}
+              </Button>
+            )}
+          </div>
         )}
       </div>
+      {verificationError && (
+        <p role="alert" className="mt-3 text-sm text-rose-600">
+          {verificationError}
+        </p>
+      )}
     </Card>
   );
 }

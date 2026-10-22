@@ -772,3 +772,46 @@ export async function linkSchoolToStudent(
   revalidatePath("/dashboard");
   return { success: "School linked successfully!" };
 }
+
+export async function unlinkSchoolFromStudent(): Promise<AuthState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "You must be signed in to perform this action." };
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("account_type, school_id")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profile?.account_type !== "student") {
+    return { error: "Only student accounts can unlink from a school." };
+  }
+
+  if (!profile.school_id) {
+    return { error: "You are not currently linked to any school." };
+  }
+
+  const oldSchoolId = profile.school_id;
+
+  const { error: updateError } = await supabase
+    .from("profiles")
+    .update({ school_id: null })
+    .eq("id", user.id);
+
+  if (updateError) {
+    return { error: `Failed to unlink school: ${updateError.message}` };
+  }
+
+  revalidatePath("/profile");
+  revalidatePath("/dashboard");
+  revalidatePath("/school/students");
+  revalidatePath(`/school/students/${user.id}`);
+  revalidatePath(`/school/${oldSchoolId}`);
+  return { success: "School unlinked successfully." };
+}

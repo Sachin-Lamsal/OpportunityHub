@@ -8,6 +8,7 @@ interface ActivityListProps {
   emptyMessage?: string;
   showDelete?: boolean;
   showAddButton?: boolean;
+  showSchoolVerification?: boolean;
 }
 
 export default function ActivityList({
@@ -15,6 +16,7 @@ export default function ActivityList({
   emptyMessage = "No activities yet.",
   showDelete = true,
   showAddButton = false,
+  showSchoolVerification = false,
 }: ActivityListProps) {
   if (activities.length === 0) {
     return (
@@ -38,6 +40,7 @@ export default function ActivityList({
           key={activity.id}
           activity={activity}
           showDelete={showDelete}
+          showSchoolVerification={showSchoolVerification}
         />
       ))}
     </div>

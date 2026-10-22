@@ -130,6 +130,9 @@ export interface Activity {
   date: string;
   notes: string | null;
   created_at: string;
+  school_verified: boolean;
+  school_verified_at: string | null;
+  school_verified_by: string | null;
 }
 
 export interface SavedOpportunity {

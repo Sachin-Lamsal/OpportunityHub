@@ -1,9 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   updateProfile,
   linkSchoolToStudent,
+  unlinkSchoolFromStudent,
   logout,
   type AuthState,
 } from "@/lib/actions/auth";
@@ -34,6 +37,28 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
   );
   const submit = useActionFormSubmit(formAction);
   const submitLink = useActionFormSubmit(linkFormAction);
+  const [unlinkError, setUnlinkError] = useState<string | null>(null);
+  const [isUnlinking, startUnlinkTransition] = useTransition();
+  const router = useRouter();
+
+  const handleUnlink = () => {
+    if (
+      !confirm(
+        `Are you sure you want to unlink from ${profile.school_name || "your school"}? Your school counselor will no longer have access to view your portfolio.`,
+      )
+    ) {
+      return;
+    }
+    setUnlinkError(null);
+    startUnlinkTransition(async () => {
+      const res = await unlinkSchoolFromStudent();
+      if (res.error) {
+        setUnlinkError(res.error);
+        return;
+      }
+      router.refresh();
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -50,25 +75,45 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
 
       {profile.school_id ? (
         <Card>
-          <div className="flex items-start justify-between">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">
-                School affiliation
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-slate-900">
+                  School affiliation
+                </h2>
+                <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+                  Linked
+                </span>
+              </div>
               <p className="mt-1 text-sm text-slate-600">
                 Linked to:{" "}
-                <span className="font-semibold text-indigo-700">
-                  {profile.school_name || "Your school"}
-                </span>
+                <Link
+                  href={`/school/${profile.school_id}`}
+                  className="font-semibold text-indigo-600 hover:text-indigo-800 hover:underline"
+                >
+                  {profile.school_name || "Your school"} ↗
+                </Link>
               </p>
               <p className="mt-2 text-xs text-slate-500">
                 Your school counselor can view your portfolio progress and share opportunities with you.
               </p>
             </div>
-            <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
-              Linked
-            </span>
+            <div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isUnlinking}
+                onClick={handleUnlink}
+                className="text-xs text-rose-600 border-rose-200 hover:bg-rose-50"
+              >
+                {isUnlinking ? "Unlinking…" : "Unlink / Change school"}
+              </Button>
+            </div>
           </div>
+          {unlinkError && (
+            <p className="mt-3 text-xs text-rose-600">{unlinkError}</p>
+          )}
         </Card>
       ) : (
         <Card>

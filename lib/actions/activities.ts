@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { ACTIVITY_CATEGORIES } from "@/lib/constants";
+import { UUID_RE } from "@/lib/auth/account";
 import type { ActivityCategory } from "@/lib/types";
 
 export interface ActivityState {
@@ -85,4 +86,64 @@ export async function deleteActivity(activityId: string): Promise<ActivityState>
   revalidatePath("/dashboard");
   revalidatePath("/cv-builder");
   return { success: "Activity deleted." };
+}
+
+/**
+ * Lets a school verify (or remove verification from) an activity belonging to
+ * a student who is currently linked to that school. The database RPC repeats
+ * this authorization check and only permits changes to verification fields.
+ */
+export async function setSchoolActivityVerification(
+  activityId: string,
+  shouldVerify: boolean,
+): Promise<ActivityState> {
+  if (!UUID_RE.test(activityId) || typeof shouldVerify !== "boolean") {
+    return { error: "Invalid activity verification request." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "You must be logged in." };
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("account_type")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profile?.account_type !== "school") {
+    return { error: "Only school accounts can verify student activities." };
+  }
+
+  const { data: studentId, error } = await supabase.rpc(
+    "set_school_activity_verification",
+    {
+      activity_uuid: activityId,
+      should_verify: shouldVerify,
+    },
+  );
+
+  if (error || !studentId) {
+    console.error("Failed to update school activity verification:", error?.message);
+    return {
+      error:
+        "This activity could not be verified. It may no longer belong to a student linked to your school.",
+    };
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/portfolio");
+  revalidatePath("/school/students");
+  revalidatePath(`/school/students/${studentId}`);
+
+  return {
+    success: shouldVerify
+      ? "Activity verified by your school."
+      : "School verification removed.",
+  };
 }

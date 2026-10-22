@@ -11,6 +11,7 @@ import {
   getSavedOpportunityIds,
   getOpportunitiesCreatedByUser,
 } from "@/lib/queries/opportunities";
+import { getOpportunitiesByPublisher } from "@/lib/queries/publishers";
 import PublisherOpportunityList from "@/components/opportunities/PublisherOpportunityList";
 import { getActivities, getRecentActivities } from "@/lib/queries/activities";
 import { calculatePortfolioScores, getWeakestCategories } from "@/lib/portfolio/score";
@@ -40,9 +41,10 @@ export default async function DashboardPage() {
 
   const scores = calculatePortfolioScores(activities);
   const weakCategories = getWeakestCategories(scores);
-  const myCreatedOpportunities = profile?.id
-    ? await getOpportunitiesCreatedByUser(profile.id, 5)
-    : [];
+  const [myCreatedOpportunities, schoolOpportunities] = await Promise.all([
+    profile?.id ? getOpportunitiesCreatedByUser(profile.id, 5) : Promise.resolve([]),
+    profile?.school_id ? getOpportunitiesByPublisher(profile.school_id, 3) : Promise.resolve([]),
+  ]);
 
   return (
     <>
@@ -76,6 +78,63 @@ export default async function DashboardPage() {
             showViewAll
           />
         </section>
+
+        {profile?.school_id ? (
+          <section className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/60 to-white p-5 shadow-xs">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-indigo-900">
+                    From your school
+                  </h2>
+                  <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+                    {profile.school_name || "Affiliated"}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Opportunities, competitions, and internal programs shared by your school.
+                </p>
+              </div>
+              <Link
+                href={`/school/${profile.school_id}`}
+                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+              >
+                View school profile →
+              </Link>
+            </div>
+            {schoolOpportunities.length > 0 ? (
+              <OpportunityList
+                opportunities={schoolOpportunities}
+                savedIds={savedIds}
+                compact
+              />
+            ) : (
+              <p className="text-xs text-slate-500 italic py-2">
+                Your school hasn&apos;t published any custom opportunities yet. Check back soon or visit their{" "}
+                <Link href={`/school/${profile.school_id}`} className="text-indigo-600 hover:underline">
+                  profile page
+                </Link>.
+              </p>
+            )}
+          </section>
+        ) : (
+          <section className="rounded-2xl border border-dashed border-indigo-200 bg-indigo-50/40 p-4 text-sm flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="font-semibold text-indigo-950 flex items-center gap-1.5">
+                <span>🏫</span> Are you affiliated with a high school or college?
+              </p>
+              <p className="text-xs text-indigo-700 mt-0.5">
+                Link your school code to unlock school-specific programs and get counselor guidance on your portfolio.
+              </p>
+            </div>
+            <Link
+              href="/profile"
+              className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors"
+            >
+              Link school →
+            </Link>
+          </section>
+        )}
 
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
