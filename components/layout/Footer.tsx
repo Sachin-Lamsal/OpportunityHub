@@ -7,7 +7,7 @@ export default function Footer() {
         <p className="text-sm text-slate-600">
           © {new Date().getFullYear()} {APP_NAME}. Built for students in Kathmandu.
         </p>
-        <p className="text-sm text-slate-500">
+        <p className="font-mono text-xs uppercase tracking-wider text-slate-500">
           NEB · IGCSE · AS · A-Level
         </p>
       </div>

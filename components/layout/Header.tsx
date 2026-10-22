@@ -19,7 +19,7 @@ export default function Header({ variant = "public" }: HeaderProps) {
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-sm font-bold text-white">
             OH
           </span>
-          <span className="text-lg font-semibold text-slate-900">{APP_NAME}</span>
+          <span className="text-lg font-semibold text-slate-900 font-display">{APP_NAME}</span>
         </Link>
 
         {variant === "public" ? (

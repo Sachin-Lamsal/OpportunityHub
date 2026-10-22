@@ -18,28 +18,28 @@ export default function OpportunityCard({
   compact = false,
 }: OpportunityCardProps) {
   return (
-    <Card className="flex h-full flex-col hover:border-indigo-200 transition-colors">
+    <Card className="flex h-full flex-col hover:border-slate-300 transition-colors p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <VerificationBadge
               isVerified={opportunity.is_verified}
               status={opportunity.verification_status}
             />
-            <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700">
+            <span className="rounded-md border border-indigo-200/70 bg-indigo-50/70 px-2 py-0.5 text-xs font-medium text-indigo-800">
               {opportunity.type}
             </span>
             {opportunity.subject_area && (
-              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+              <span className="rounded-md border border-slate-200/80 bg-slate-100/70 px-2 py-0.5 text-xs font-medium text-slate-700">
                 {opportunity.subject_area}
               </span>
             )}
             {opportunity.is_online ? (
-              <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+              <span className="rounded-md border border-emerald-300/70 bg-emerald-50/70 px-2 py-0.5 text-xs font-medium text-emerald-800">
                 Online
               </span>
             ) : (
-              <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+              <span className="rounded-md border border-amber-300/70 bg-amber-50/70 px-2 py-0.5 text-xs font-medium text-amber-800">
                 In person
               </span>
             )}

@@ -111,9 +111,9 @@
     "Liberation Mono", monospace;
 
   /* ---- Corner Radii (Crisp, tailored, not overly bulbous) --------------- */
-  --radius-xl: 0.625rem;
-  --radius-2xl: 0.75rem;
-  --radius-3xl: 1rem;
+  --radius-xl: 0.5rem;
+  --radius-2xl: 0.625rem;
+  --radius-3xl: 0.75rem;
 
   /* ---- Elevation (Warm, layered, soft shadows) -------------------------- */
   --shadow-xs: 0 1px 2px 0 oklch(0.18 0.012 50 / 0.04);
@@ -179,6 +179,11 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+  }
+
+  h1, h2 {
+    font-family: var(--font-display);
+    letter-spacing: -0.015em;
   }
 
   /* One consistent focus treatment everywhere, keyboard-only. */

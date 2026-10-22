@@ -31,7 +31,7 @@ export function Card({
 }: CardProps) {
   return (
     <Tag
-      className={`rounded-2xl transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+      className={`rounded-xl transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
         toneClasses[tone]
       } ${interactive ? "lift cursor-pointer" : ""} ${className}`}
     >

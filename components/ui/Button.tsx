@@ -13,29 +13,29 @@ export type ButtonVariant =
 export type ButtonSize = "xs" | "sm" | "md" | "lg";
 
 const base =
-  "relative inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-xl " +
-  "font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] " +
+  "relative inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg " +
+  "font-medium transition-all duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] " +
   "focus-visible:outline-2 focus-visible:outline-offset-2 " +
   "disabled:pointer-events-none disabled:opacity-55";
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-brand-gradient text-white shadow-sm hover:shadow-md hover:brightness-110 active:brightness-95 " +
+    "bg-[var(--brand)] text-white shadow-xs hover:bg-[var(--brand-hover)] active:scale-[0.99] " +
     "focus-visible:outline-brand-600",
   secondary:
     "bg-[var(--surface-2)] text-[var(--ink)] border border-[var(--line)] hover:bg-[var(--surface-3)] hover:border-[var(--line-strong)] " +
-    "shadow-xs focus-visible:outline-[var(--line-strong)]",
+    "shadow-xs focus-visible:outline-[var(--line-strong)] active:scale-[0.99]",
   outline:
     "border border-[var(--line-strong)] bg-transparent text-[var(--ink)] hover:bg-[var(--surface-2)] " +
-    "focus-visible:outline-[var(--line-strong)]",
+    "focus-visible:outline-[var(--line-strong)] active:scale-[0.99]",
   ghost:
     "bg-transparent text-[var(--ink-soft)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)] " +
     "focus-visible:outline-[var(--line-strong)]",
   danger:
-    "bg-[var(--color-danger)] text-white shadow-sm hover:brightness-110 active:brightness-95 " +
+    "bg-[var(--color-danger)] text-white shadow-xs hover:brightness-105 active:scale-[0.99] " +
     "focus-visible:outline-[var(--color-danger)]",
   success:
-    "bg-[var(--color-success)] text-white shadow-sm hover:brightness-110 active:brightness-95 " +
+    "bg-[var(--color-success)] text-white shadow-xs hover:brightness-105 active:scale-[0.99] " +
     "focus-visible:outline-[var(--color-success)]",
 };
 

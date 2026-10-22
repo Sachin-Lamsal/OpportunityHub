@@ -44,7 +44,7 @@ export default function AppNav({ accountType = "student", isLoggedIn = true }: A
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-sm font-bold text-white">
             OH
           </span>
-          <span className="hidden text-lg font-semibold text-slate-900 sm:inline">
+          <span className="hidden text-lg font-semibold text-slate-900 font-display sm:inline">
             {APP_NAME}
           </span>
         </Link>
