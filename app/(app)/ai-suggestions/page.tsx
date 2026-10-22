@@ -1,4 +1,5 @@
 import PageHeader from "@/components/layout/PageHeader";
+import Breadcrumbs from "@/components/layout/Breadcrumbs";
 import AiTalkChat from "@/components/ai/AiTalkChat";
 import AISuggestionsPanel from "@/components/ai/AISuggestionsPanel";
 
@@ -9,6 +10,9 @@ export const metadata = {
 export default function AISuggestionsPage() {
   return (
     <>
+      <Breadcrumbs
+        items={[{ label: "Dashboard", href: "/dashboard" }, { label: "AI Advisor" }]}
+      />
       <PageHeader
         title="AI Advisor & Mentorship"
         description="Talk directly with your admissions mentor or generate structured portfolio guidance."

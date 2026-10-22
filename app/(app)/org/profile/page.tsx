@@ -1,4 +1,5 @@
 import PageHeader from "@/components/layout/PageHeader";
+import Breadcrumbs from "@/components/layout/Breadcrumbs";
 import OrganizationProfileForm from "@/components/auth/OrganizationProfileForm";
 import { getProfile } from "@/lib/actions/auth";
 import { redirect } from "next/navigation";
@@ -16,6 +17,9 @@ export default async function OrgProfilePage() {
 
   return (
     <>
+      <Breadcrumbs
+        items={[{ label: "Organization dashboard", href: "/org/dashboard" }, { label: "Settings" }]}
+      />
       <PageHeader
         title="Organization settings"
         description="Update how your organization appears on published opportunities."

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Opportunity } from "@/lib/types";
 import { getOpportunities } from "@/lib/queries/opportunities";
+import { withoutInternalNotes } from "@/lib/opportunities/internal-notes";
 
 export interface CuratedOpportunitySections {
   deadlinesThisWeek: Opportunity[];
@@ -53,7 +54,9 @@ async function getPopularOpportunities(limit: number): Promise<Opportunity[]> {
     return getOpportunities({ verificationStatus: "verified", limit });
   }
 
-  const byId = new Map(data.map((row) => [row.id, row as Opportunity]));
+  const byId = new Map(
+    withoutInternalNotes(data).map((row) => [row.id, row]),
+  );
   return topIds
     .map((id) => byId.get(id))
     .filter((opp): opp is Opportunity => Boolean(opp));
@@ -72,7 +75,7 @@ async function getFeaturedOpportunities(limit: number): Promise<Opportunity[]> {
     .limit(limit);
 
   if (!taggedError && tagged && tagged.length >= Math.min(3, limit)) {
-    return tagged as Opportunity[];
+    return withoutInternalNotes(tagged);
   }
 
   const { data: verified, error: verifiedError } = await supabase
@@ -86,7 +89,7 @@ async function getFeaturedOpportunities(limit: number): Promise<Opportunity[]> {
     .limit(limit);
 
   if (!verifiedError && verified?.length) {
-    return verified as Opportunity[];
+    return withoutInternalNotes(verified);
   }
 
   return getOpportunities({ verificationStatus: "verified", limit });

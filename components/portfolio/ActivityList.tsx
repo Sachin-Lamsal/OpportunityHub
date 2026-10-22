@@ -1,6 +1,6 @@
 import type { Activity } from "@/lib/types";
 import ActivityCard from "@/components/portfolio/ActivityCard";
-import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/States";
 import Button from "@/components/ui/Button";
 
 interface ActivityListProps {
@@ -18,16 +18,17 @@ export default function ActivityList({
 }: ActivityListProps) {
   if (activities.length === 0) {
     return (
-      <Card className="text-center py-10">
-        <p className="text-slate-600">{emptyMessage}</p>
-        {showAddButton && (
-          <div className="mt-4">
+      <EmptyState
+        title="No activities logged yet"
+        description={emptyMessage}
+        action={
+          showAddButton ? (
             <Button href="/portfolio/add" size="sm">
               Add your first activity
             </Button>
-          </div>
-        )}
-      </Card>
+          ) : undefined
+        }
+      />
     );
   }
 

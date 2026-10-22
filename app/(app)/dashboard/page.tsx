@@ -13,6 +13,7 @@ import {
 import { getActivities, getRecentActivities } from "@/lib/queries/activities";
 import { calculatePortfolioScores, getWeakestCategories } from "@/lib/portfolio/score";
 import { getProfile } from "@/lib/actions/auth";
+import ProfileCompletionCard from "@/components/profile/ProfileCompletionCard";
 import Button from "@/components/ui/Button";
 
 export const metadata = {
@@ -102,6 +103,10 @@ export default async function DashboardPage() {
               </Link>
             </div>
           </Card>
+
+          <div className="mt-4">
+            <ProfileCompletionCard profile={profile} />
+          </div>
         </section>
 
         <section>
@@ -139,7 +144,14 @@ export default async function DashboardPage() {
             <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
               5. Saved opportunities
             </h2>
-            {savedOpportunities.length > 0 && (
+            {savedOpportunities.length > 0 ? (
+              <Link
+                href="/saved"
+                className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+              >
+                View all saved
+              </Link>
+            ) : (
               <Link
                 href="/opportunities"
                 className="text-sm font-medium text-indigo-600 hover:text-indigo-700"

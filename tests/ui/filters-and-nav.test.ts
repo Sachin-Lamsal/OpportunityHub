@@ -166,4 +166,15 @@ describe("active navigation item", () => {
   test("an unrelated path highlights nothing", () => {
     assert.equal(activeNavHref("/cv-builder", SCHOOL_NAV_LINKS, "/school/dashboard"), null);
   });
+
+  test("the saved page highlights the saved entry of the student navigation", () => {
+    assert.equal(activeNavHref("/saved", STUDENT_NAV_LINKS, "/dashboard"), "/saved");
+  });
+
+  test("the saved entry does not capture the opportunities entry", () => {
+    assert.equal(
+      activeNavHref("/opportunities", STUDENT_NAV_LINKS, "/dashboard"),
+      "/opportunities",
+    );
+  });
 });

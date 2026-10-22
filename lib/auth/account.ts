@@ -30,6 +30,7 @@ const STUDENT_ROUTE_PREFIXES = [
   "/profile",
   "/ai-suggestions",
   "/onboarding",
+  "/saved",
 ] as const;
 
 const SCHOOL_ROUTE_PREFIX = "/school";

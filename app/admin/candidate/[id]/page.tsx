@@ -1,3 +1,4 @@
+import Breadcrumbs from "@/components/layout/Breadcrumbs";
 import { getCandidateWithEvidence } from "@/lib/queries/discovery";
 import CandidateReviewActions from "@/components/admin/CandidateReviewActions";
 import { Card } from "@/components/ui/Card";
@@ -18,6 +19,7 @@ export default async function CandidatePage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs items={[{ label: "Admin", href: "/admin/dashboard" }, { label: "Candidate review" }]} />
       <div>
         <h2 className="text-3xl font-bold text-slate-900">{candidate.title}</h2>
         <p className="text-slate-600">{candidate.organizer}</p>

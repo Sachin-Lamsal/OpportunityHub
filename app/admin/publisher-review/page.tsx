@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Breadcrumbs from "@/components/layout/Breadcrumbs";
 import { Card } from "@/components/ui/Card";
 import PublisherListingReviewActions from "@/components/admin/PublisherListingReviewActions";
 import PublisherProfileReviewActions from "@/components/admin/PublisherProfileReviewActions";
@@ -18,6 +19,7 @@ export default async function PublisherReviewPage() {
 
   return (
     <div className="space-y-10">
+      <Breadcrumbs items={[{ label: "Admin", href: "/admin/dashboard" }, { label: "Publisher review" }]} />
       <div>
         <Link href="/admin/dashboard" className="text-sm font-medium text-indigo-600 hover:text-indigo-700">
           ← Admin dashboard

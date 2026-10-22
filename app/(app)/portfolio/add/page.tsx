@@ -1,4 +1,5 @@
 import ActivityForm from "@/components/portfolio/ActivityForm";
+import Breadcrumbs from "@/components/layout/Breadcrumbs";
 import { getOpportunityById, getOpportunities } from "@/lib/queries/opportunities";
 
 export const metadata = {
@@ -19,9 +20,18 @@ export default async function AddActivityPage({ searchParams }: AddActivityPageP
   ]);
 
   return (
-    <ActivityForm
-      initialOpportunity={selectedOpportunity}
-      availableOpportunities={opportunities}
-    />
+    <>
+      <Breadcrumbs
+        items={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Portfolio", href: "/portfolio" },
+          { label: "Add activity" },
+        ]}
+      />
+      <ActivityForm
+        initialOpportunity={selectedOpportunity}
+        availableOpportunities={opportunities}
+      />
+    </>
   );
 }

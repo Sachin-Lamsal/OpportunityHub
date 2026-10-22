@@ -1,3 +1,4 @@
+import Breadcrumbs from "@/components/layout/Breadcrumbs";
 import { getApprovalQueue } from "@/lib/queries/discovery";
 import Button from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -8,6 +9,7 @@ export default async function ApprovalQueuePage() {
   const queue = await getApprovalQueue();
   return (
     <div className="space-y-6">
+      <Breadcrumbs items={[{ label: "Admin", href: "/admin/dashboard" }, { label: "Approval queue" }]} />
       <h2 className="text-3xl font-bold text-slate-900">Approval Queue ({queue.length})</h2>
       {queue.length > 0 ? (
         <div className="space-y-4">

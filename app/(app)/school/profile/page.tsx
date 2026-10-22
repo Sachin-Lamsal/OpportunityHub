@@ -1,4 +1,5 @@
 import PageHeader from "@/components/layout/PageHeader";
+import Breadcrumbs from "@/components/layout/Breadcrumbs";
 import OrganizationProfileForm from "@/components/auth/OrganizationProfileForm";
 import SchoolInvitePanel from "@/components/school/SchoolInvitePanel";
 import { getProfile } from "@/lib/actions/auth";
@@ -20,6 +21,9 @@ export default async function SchoolProfilePage() {
 
   return (
     <>
+      <Breadcrumbs
+        items={[{ label: "School dashboard", href: "/school/dashboard" }, { label: "Settings" }]}
+      />
       <PageHeader
         title="School settings"
         description="Update your school profile, registration rules, and student invites."

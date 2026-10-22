@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import PageHeader from "@/components/layout/PageHeader";
+import Breadcrumbs from "@/components/layout/Breadcrumbs";
 import ActivityList from "@/components/portfolio/ActivityList";
 import PortfolioScoreSummary from "@/components/portfolio/PortfolioScoreSummary";
 import { Card } from "@/components/ui/Card";
@@ -43,6 +44,13 @@ export default async function SchoolStudentDetailPage({
 
   return (
     <>
+      <Breadcrumbs
+        items={[
+          { label: "School dashboard", href: "/school/dashboard" },
+          { label: "Students", href: "/school/students" },
+          { label: student.email },
+        ]}
+      />
       <PageHeader
         title={student.email}
         description="Portfolio progress for a student linked to your school."

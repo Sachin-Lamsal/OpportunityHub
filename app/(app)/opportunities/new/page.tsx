@@ -1,8 +1,13 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import Breadcrumbs from "@/components/layout/Breadcrumbs";
 import OpportunityForm from "@/components/opportunities/OpportunityForm";
 import { getProfile } from "@/lib/actions/auth";
-import { UUID_RE, canManageOpportunities } from "@/lib/auth/account";
+import {
+  UUID_RE,
+  canManageOpportunities,
+  dashboardPathFor,
+} from "@/lib/auth/account";
 import { getOpportunityById } from "@/lib/queries/opportunities";
 import type { Opportunity } from "@/lib/types";
 
@@ -35,6 +40,15 @@ export default async function NewOpportunityPage({
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs
+        items={[
+          {
+            label: "Dashboard",
+            href: dashboardPathFor(profile.account_type),
+          },
+          { label: "Create opportunity" },
+        ]}
+      />
       <div className="rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-violet-50 p-4 flex flex-wrap items-center justify-between gap-3 text-sm">
         <div>
           <p className="font-semibold text-indigo-950 flex items-center gap-1.5">

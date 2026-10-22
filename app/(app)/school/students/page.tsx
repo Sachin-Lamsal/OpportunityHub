@@ -1,5 +1,6 @@
 import Link from "next/link";
 import PageHeader from "@/components/layout/PageHeader";
+import Breadcrumbs from "@/components/layout/Breadcrumbs";
 import { Card } from "@/components/ui/Card";
 import { getProfile } from "@/lib/actions/auth";
 import { getLinkedStudentsForSchool } from "@/lib/queries/school";
@@ -20,6 +21,9 @@ export default async function SchoolStudentsPage() {
 
   return (
     <>
+      <Breadcrumbs
+        items={[{ label: "School dashboard", href: "/school/dashboard" }, { label: "Students" }]}
+      />
       <PageHeader
         title="Linked students"
         description={`Students who joined with school code ${profile.school_code ?? ""}.`}

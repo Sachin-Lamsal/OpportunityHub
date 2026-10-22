@@ -1,3 +1,4 @@
+import Breadcrumbs from "@/components/layout/Breadcrumbs";
 import Button from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { getApprovalQueue, getAuditEvents, getAdminDashboardStats } from "@/lib/queries/discovery";
@@ -13,6 +14,7 @@ export default async function AdminDashboard() {
 
   return (
     <div className="space-y-8">
+      <Breadcrumbs items={[{ label: "Admin", href: "/admin/dashboard" }, { label: "Dashboard" }]} />
       <div>
         <h2 className="text-3xl font-bold text-slate-900">Opportunity Discovery & Approval</h2>
         <p className="mt-2 text-slate-600">

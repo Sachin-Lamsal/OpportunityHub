@@ -9,6 +9,7 @@ import {
   setOpportunityLifecycle,
 } from "@/lib/actions/create-opportunity";
 import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/States";
 import Button from "@/components/ui/Button";
 import OpportunityLifecycleBadge from "@/components/opportunities/OpportunityLifecycleBadge";
 
@@ -23,6 +24,7 @@ export default function PublisherOpportunityList({
 }: PublisherOpportunityListProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   const handleDelete = (id: string, title: string) => {
     if (!confirm(`Are you sure you want to delete "${title}"?`)) {
@@ -30,8 +32,13 @@ export default function PublisherOpportunityList({
     }
     startTransition(async () => {
       setError(null);
+      setMessage(null);
       const result = await deleteOpportunity(id);
-      if (result.error) setError(result.error);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setMessage(`"${title}" was deleted.`);
+      }
     });
   };
 
@@ -45,27 +52,46 @@ export default function PublisherOpportunityList({
 
     startTransition(async () => {
       setError(null);
+      setMessage(null);
       const result = await setOpportunityLifecycle(id, status);
-      if (result.error) setError(result.error);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setMessage(
+          `"${title}" was ${status === "cancelled" ? "cancelled" : "archived"}.`,
+        );
+      }
     });
   };
 
   if (opportunities.length === 0) {
     return (
-      <Card className="py-8 text-center text-sm text-slate-600">
-        <p>{emptyMessage}</p>
-        <div className="mt-3">
+      <EmptyState
+        title="No listings yet"
+        description={emptyMessage}
+        action={
           <Button href="/opportunities/new" size="sm">
             Add your first opportunity
           </Button>
-        </div>
-      </Card>
+        }
+      />
     );
   }
 
   return (
     <div className="space-y-3">
-      {error ? <p className="text-sm text-rose-600">{error}</p> : null}
+      <div aria-live="polite">
+        {error ? (
+          <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            {error}
+          </p>
+        ) : null}
+        {!error && message ? (
+          <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            {message}
+          </p>
+        ) : null}
+      </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {opportunities.map((opportunity) => {
           const status = opportunity.lifecycle_status ?? "draft";

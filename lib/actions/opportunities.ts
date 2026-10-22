@@ -43,6 +43,7 @@ export async function toggleSaveOpportunity(
     revalidatePath("/opportunities");
     revalidatePath(`/opportunities/${opportunityId}`);
     revalidatePath("/dashboard");
+    revalidatePath("/saved");
     return { saved: false, remindDeadline: false };
   }
 
@@ -60,6 +61,7 @@ export async function toggleSaveOpportunity(
   revalidatePath("/opportunities");
   revalidatePath(`/opportunities/${opportunityId}`);
   revalidatePath("/dashboard");
+  revalidatePath("/saved");
   return { saved: true, remindDeadline };
 }
 
@@ -89,6 +91,7 @@ export async function updateOpportunityReminder(
 
   revalidatePath(`/opportunities/${opportunityId}`);
   revalidatePath("/dashboard");
+  revalidatePath("/saved");
   return { success: true };
 }
 

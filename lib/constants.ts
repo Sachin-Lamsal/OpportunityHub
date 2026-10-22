@@ -66,6 +66,7 @@ export const ACTIVITY_CATEGORIES = [
 export const STUDENT_NAV_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/opportunities", label: "Opportunities" },
+  { href: "/saved", label: "Saved" },
   { href: "/portfolio", label: "Portfolio" },
   { href: "/cv-builder", label: "CV Builder" },
   { href: "/ai-suggestions", label: "AI Advisor" },
@@ -122,3 +123,17 @@ export const FORMAT_FILTERS = [
   { value: "online", label: "Online" },
   { value: "in_person", label: "In person" },
 ] as const;
+
+/**
+ * Sort options for the opportunities browse page.
+ *
+ * `deadline` is the option students care about most (what can I still apply
+ * to?), and it puts opportunities without a deadline last instead of first.
+ */
+export const OPPORTUNITY_SORT_OPTIONS = [
+  { value: "newest", label: "Newest first" },
+  { value: "deadline", label: "Deadline (soonest first)" },
+  { value: "title", label: "Title (A–Z)" },
+] as const;
+
+export const DEFAULT_OPPORTUNITY_SORT = "newest";

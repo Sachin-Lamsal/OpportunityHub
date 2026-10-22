@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import PageHeader from "@/components/layout/PageHeader";
+import Breadcrumbs from "@/components/layout/Breadcrumbs";
 import OpportunityForm from "@/components/opportunities/OpportunityForm";
 import { getOpportunityForOwnerEdit } from "@/lib/queries/opportunities";
 import { getProfile } from "@/lib/actions/auth";
@@ -38,6 +39,13 @@ export default async function EditOpportunityPage({
 
   return (
     <>
+      <Breadcrumbs
+        items={[
+          { label: "Dashboard", href: backHref },
+          { label: opportunity.title, href: `/opportunities/${opportunity.id}` },
+          { label: "Edit" },
+        ]}
+      />
       <div className="mb-4">
         <Link
           href={backHref}

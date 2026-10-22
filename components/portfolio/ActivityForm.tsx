@@ -12,6 +12,7 @@ import Textarea from "@/components/ui/Textarea";
 import FormMessage from "@/components/ui/FormMessage";
 import { Card } from "@/components/ui/Card";
 import { useActionFormSubmit } from "@/components/ui/useActionFormSubmit";
+import { useUnsavedChangesGuard } from "@/components/ui/useUnsavedChangesGuard";
 
 const initialState: ActivityState = {};
 
@@ -42,6 +43,24 @@ export default function ActivityForm({
   const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(
     initialOpportunity || null,
   );
+
+  // Warn before a student loses a half-written activity entry.
+  const [isDirty, setIsDirty] = useState(false);
+  useUnsavedChangesGuard(
+    isDirty,
+    "You have unsaved changes to this activity. Leave this page and lose them?",
+  );
+
+  // A saved activity is not an unsaved change any more, so the warning must
+  // not fire while the redirect is happening. The result object identity
+  // changes once per action run, so comparing it with the last one that was
+  // seen is enough.
+  const [savedResult, setSavedResult] = useState<ActivityState | null>(null);
+  if (state.redirectTo && state !== savedResult) {
+    setSavedResult(state);
+    setIsDirty(false);
+  }
+
   const [searchFilter, setSearchFilter] = useState("");
   const [showSearch, setShowSearch] = useState(false);
 
@@ -94,7 +113,10 @@ export default function ActivityForm({
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => setSelectedOpp(null)}
+            onClick={() => {
+              setSelectedOpp(null);
+              setIsDirty(true);
+            }}
           >
             Unlink
           </Button>
@@ -118,6 +140,9 @@ export default function ActivityForm({
                 onClick={() => {
                   setSelectedOpp(opp);
                   setShowSearch(false);
+                  // The linked opportunity is part of what the student would
+                  // lose by leaving the page.
+                  setIsDirty(true);
                 }}
                 className="text-left rounded-lg border border-slate-200 bg-white p-3 hover:border-indigo-400 hover:shadow-xs transition-all"
               >
@@ -136,7 +161,11 @@ export default function ActivityForm({
         </div>
       )}
 
-      <form onSubmit={submit} className="mt-6 space-y-4">
+      <form
+        onSubmit={submit}
+        onChange={() => setIsDirty(true)}
+        className="mt-6 space-y-4"
+      >
         <FormMessage error={state.error} success={state.success} />
 
         {selectedOpp && (

@@ -21,6 +21,7 @@ export default function CVPreview({
   aiError,
 }: CVPreviewProps) {
   const [copied, setCopied] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
   const plainText = cvToPlainText(cv);
 
   const enhancedText = aiEnhancement
@@ -48,11 +49,35 @@ export default function CVPreview({
     }
   }
 
+  function handleDownload() {
+    try {
+      const blob = new Blob([enhancedText], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const fileName = cv.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      link.href = url;
+      link.download = `${fileName || "opportunityhub"}-cv.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      // Revoking the URL straight away can cancel the download in some
+      // browsers, so it is released once the browser had a chance to start it.
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setDownloaded(true);
+      setTimeout(() => setDownloaded(false), 2000);
+    } catch {
+      alert("Could not download the file. Use “Copy CV to clipboard” instead.");
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-3">
         <Button type="button" onClick={handleCopy}>
           {copied ? "Copied!" : "Copy CV to clipboard"}
+        </Button>
+        <Button type="button" variant="outline" onClick={handleDownload}>
+          {downloaded ? "Downloaded!" : "Download as .txt"}
         </Button>
       </div>
 

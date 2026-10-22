@@ -1,6 +1,10 @@
 import Link from "next/link";
 import type { Opportunity } from "@/lib/types";
 import { formatDate, formatDeadline } from "@/lib/utils/format";
+import {
+  isDeadlinePast,
+  isDeadlineUrgent,
+} from "@/lib/opportunities/deadline";
 import { Card } from "@/components/ui/Card";
 import SaveOpportunityButton from "@/components/opportunities/SaveOpportunityButton";
 
@@ -10,13 +14,24 @@ interface OpportunityCardProps {
   opportunity: Opportunity;
   isSaved?: boolean;
   compact?: boolean;
+  /**
+   * Query string of the list the card was rendered in. It is carried over to
+   * the detail page so the "back to results" link can restore the filters the
+   * student was looking at.
+   */
+  linkQuery?: string;
 }
 
 export default function OpportunityCard({
   opportunity,
   isSaved = false,
   compact = false,
+  linkQuery = "",
 }: OpportunityCardProps) {
+  const closed = isDeadlinePast(opportunity.deadline);
+  const closingSoon = !closed && isDeadlineUrgent(opportunity.deadline);
+  const href = `/opportunities/${opportunity.id}${linkQuery ? `?${linkQuery}` : ""}`;
+
   return (
     <Card className="flex h-full flex-col hover:border-indigo-200 transition-colors">
       <div className="flex items-start justify-between gap-3">
@@ -46,7 +61,7 @@ export default function OpportunityCard({
           </div>
 
           <Link
-            href={`/opportunities/${opportunity.id}`}
+            href={href}
             className="mt-2 block text-lg font-semibold text-slate-900 hover:text-indigo-700"
           >
             {opportunity.title}
@@ -74,9 +89,27 @@ export default function OpportunityCard({
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4 text-sm">
         <span className="text-slate-500">
           Deadline:{" "}
-          <span className="font-medium text-slate-700">
+          <span
+            className={
+              closed
+                ? "font-medium text-rose-700"
+                : closingSoon
+                  ? "font-medium text-amber-700"
+                  : "font-medium text-slate-700"
+            }
+          >
             {formatDeadline(opportunity.deadline)}
           </span>
+          {closed && (
+            <span className="ml-2 rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700">
+              Applications closed
+            </span>
+          )}
+          {closingSoon && (
+            <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">
+              Closing soon
+            </span>
+          )}
           {opportunity.start_date && (
             <span className="ml-2 text-slate-400">
               · Starts {formatDate(opportunity.start_date)}
@@ -84,7 +117,7 @@ export default function OpportunityCard({
           )}
         </span>
         <Link
-          href={`/opportunities/${opportunity.id}`}
+          href={href}
           className="font-medium text-indigo-600 hover:text-indigo-700"
         >
           View details →

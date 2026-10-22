@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   createOpportunity,
   updateOpportunity,
@@ -16,6 +16,7 @@ import Textarea from "@/components/ui/Textarea";
 import FormMessage from "@/components/ui/FormMessage";
 import { Card } from "@/components/ui/Card";
 import { useActionFormSubmit } from "@/components/ui/useActionFormSubmit";
+import { useUnsavedChangesGuard } from "@/components/ui/useUnsavedChangesGuard";
 
 const initialState: CreateOpportunityState = {};
 
@@ -36,6 +37,25 @@ export default function OpportunityForm({
   const submit = useActionFormSubmit(formAction);
   useActionRedirect(state.redirectTo);
 
+  // Warn before the publisher loses a half-written listing by clicking a link.
+  const [isDirty, setIsDirty] = useState(false);
+  useUnsavedChangesGuard(
+    isDirty,
+    "You have unsaved changes to this opportunity. Leave this page and lose them?",
+  );
+
+  // A successful save is not an unsaved change any more, so the warning must
+  // not fire while the redirect to the dashboard is happening. The result
+  // object identity changes once per action run, so it is enough to compare
+  // it with the last one that was seen.
+  const [savedResult, setSavedResult] = useState<CreateOpportunityState | null>(
+    null,
+  );
+  if (state.success && state !== savedResult) {
+    setSavedResult(state);
+    setIsDirty(false);
+  }
+
   return (
     <Card>
       <h1 className="text-2xl font-bold text-slate-900">
@@ -51,7 +71,11 @@ export default function OpportunityForm({
           : "Save a draft while you work, then submit it for an administrator to review before students can see it."}
       </p>
 
-      <form onSubmit={submit} className="mt-6 space-y-8">
+      <form
+        onSubmit={submit}
+        onChange={() => setIsDirty(true)}
+        className="mt-6 space-y-8"
+      >
         {initialData?.id ? (
           <input type="hidden" name="opportunity_id" value={initialData.id} />
         ) : null}

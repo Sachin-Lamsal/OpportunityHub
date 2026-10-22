@@ -1,4 +1,5 @@
 import PageHeader from "@/components/layout/PageHeader";
+import Breadcrumbs from "@/components/layout/Breadcrumbs";
 import PublisherOpportunityList from "@/components/opportunities/PublisherOpportunityList";
 import Button from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -27,6 +28,9 @@ export default async function OrgDashboardPage() {
 
   return (
     <>
+      <Breadcrumbs
+        items={[{ label: "Organization dashboard" }]}
+      />
       <PageHeader
         title={profile.organization_name ?? "Organization dashboard"}
         description="Publish and manage opportunities for students on OpportunityHub."

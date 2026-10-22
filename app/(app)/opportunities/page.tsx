@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import PageHeader from "@/components/layout/PageHeader";
+import Breadcrumbs from "@/components/layout/Breadcrumbs";
 import OpportunityFilters from "@/components/opportunities/OpportunityFilters";
 import OpportunityList from "@/components/opportunities/OpportunityList";
 import {
@@ -8,7 +9,11 @@ import {
 } from "@/lib/queries/opportunities";
 import { getCuratedOpportunitySections } from "@/lib/queries/curated-opportunities";
 import CuratedOpportunitySections from "@/components/opportunities/CuratedOpportunitySections";
-import { hasActiveFilterParams } from "@/lib/opportunities/filters";
+import {
+  hasActiveFilterParams,
+  opportunitySortLabel,
+  readOpportunitySortParams,
+} from "@/lib/opportunities/filters";
 
 export const metadata = {
   title: "Opportunities",
@@ -21,6 +26,7 @@ interface OpportunitiesPageProps {
     type?: string;
     deadline?: string;
     format?: string;
+    sort?: string;
   }>;
 }
 
@@ -35,6 +41,15 @@ async function OpportunityResults({
 }) {
   const params = await searchParams;
   const hasFilters = hasActiveFilterParams(params);
+  const sort = readOpportunitySortParams(params);
+
+  // The active query string is carried into every card link so the detail page
+  // can send the student back to the exact list they came from.
+  const linkQuery = new URLSearchParams(
+    Object.entries(params)
+      .filter(([, value]) => typeof value === "string" && value.trim())
+      .map(([key, value]) => [key, value as string]),
+  ).toString();
 
   const [opportunities, savedIds, curated] = await Promise.all([
     getOpportunities({
@@ -43,6 +58,7 @@ async function OpportunityResults({
       type: params.type,
       deadline: params.deadline,
       format: params.format,
+      sort,
     }),
     getSavedOpportunityIds(),
     hasFilters ? Promise.resolve(null) : getCuratedOpportunitySections(),
@@ -66,11 +82,12 @@ async function OpportunityResults({
       </h2>
       <p className="mb-4 text-sm text-slate-600">
         {opportunities.length} opportunit{opportunities.length === 1 ? "y" : "ies"} found
-        {hasFilters ? " matching your filters" : ""}, newest first.
+        {hasFilters ? " matching your filters" : ""}, {opportunitySortLabel(sort)}.
       </p>
       <OpportunityList
         opportunities={opportunities}
         savedIds={savedIds}
+        linkQuery={linkQuery}
         emptyMessage={
           hasFilters
             ? "No opportunities match your filters. Try clearing some filters."
@@ -84,6 +101,7 @@ async function OpportunityResults({
 export default function OpportunitiesPage({ searchParams }: OpportunitiesPageProps) {
   return (
     <>
+      <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Opportunities" }]} />
       <PageHeader
         title="Opportunities"
         description="Discover competitions, workshops, internships, and more."

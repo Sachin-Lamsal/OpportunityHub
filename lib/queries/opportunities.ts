@@ -1,6 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Opportunity } from "@/lib/types";
 import { withoutInternalNotes } from "@/lib/opportunities/internal-notes";
+import { isDeadlinePast } from "@/lib/opportunities/deadline";
+import {
+  DEFAULT_OPPORTUNITY_SORT,
+  isOpportunitySort,
+  type OpportunitySort,
+} from "@/lib/opportunities/filters";
 
 export interface OpportunityFilters {
   q?: string;
@@ -9,6 +15,7 @@ export interface OpportunityFilters {
   deadline?: string;
   format?: string;
   verificationStatus?: string;
+  sort?: OpportunitySort;
   limit?: number;
 }
 
@@ -95,16 +102,39 @@ function sanitizePostgrestSearchTerm(term: string): string {
   return term.replace(/[,()"\\]/g, " ").replace(/\s+/g, " ").trim();
 }
 
+/** Puts opportunities that are still open before the ones that are closed. */
+function orderByStillOpen<T extends { deadline?: string | null }>(rows: T[]): T[] {
+  const open = rows.filter((row) => !isDeadlinePast(row.deadline));
+  const closed = rows.filter((row) => isDeadlinePast(row.deadline));
+
+  return [...open, ...closed];
+}
+
 export async function getOpportunities(
   filters: OpportunityFilters = {},
 ): Promise<Opportunity[]> {
   const supabase = await createClient();
 
+  const sort: OpportunitySort = isOpportunitySort(filters.sort)
+    ? filters.sort
+    : DEFAULT_OPPORTUNITY_SORT;
+
   let query = supabase
     .from("opportunities")
     .select("*")
-    .eq("lifecycle_status", "published")
-    .order("created_at", { ascending: false });
+    .eq("lifecycle_status", "published");
+
+  if (sort === "deadline") {
+    // Opportunities without a deadline are still open, but they cannot be
+    // "due soon" — park them at the end instead of the top.
+    query = query
+      .order("deadline", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: false });
+  } else if (sort === "title") {
+    query = query.order("title", { ascending: true });
+  } else {
+    query = query.order("created_at", { ascending: false });
+  }
 
   if (filters.subject) {
     query = query.eq("subject_area", filters.subject);
@@ -167,6 +197,81 @@ export async function getOpportunities(
   return withoutInternalNotes(data ?? []);
 }
 
+/**
+ * Similar published opportunities for the detail page.
+ *
+ * Matching is done on the data the publisher actually filled in (type and
+ * subject area), with a fallback to "same type" when the opportunity has no
+ * subject area. Only published rows are returned, the opportunity itself is
+ * excluded, and listings whose deadline has passed are listed after the ones
+ * that are still open.
+ */
+export async function getRelatedOpportunities(
+  opportunity: Pick<Opportunity, "id" | "type" | "subject_area">,
+  limit = 3,
+): Promise<Opportunity[]> {
+  const supabase = await createClient();
+
+  let query = supabase
+    .from("opportunities")
+    .select("*")
+    .eq("lifecycle_status", "published")
+    .neq("id", opportunity.id)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (opportunity.subject_area) {
+    query = query.eq("subject_area", opportunity.subject_area);
+  } else {
+    query = query.eq("type", opportunity.type);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    if (!error.message.includes("fetch failed")) {
+      console.error("Failed to fetch related opportunities:", error.message);
+    }
+    return [];
+  }
+
+  // A listing a student can still apply to is the more useful suggestion, so
+  // the ones whose deadline has passed are moved to the end instead of being
+  // hidden — they are shown honestly with an "Applications closed" badge.
+  const related = orderByStillOpen(withoutInternalNotes(data ?? []));
+
+  // When a subject-area match is thin, top it up with same-type opportunities
+  // so the section is useful rather than empty.
+  if (related.length < limit) {
+    const seen = new Set(related.map((row) => row.id));
+    seen.add(opportunity.id);
+
+    const { data: fallback, error: fallbackError } = await supabase
+      .from("opportunities")
+      .select("*")
+      .eq("lifecycle_status", "published")
+      .eq("type", opportunity.type)
+      .order("created_at", { ascending: false })
+      .limit(limit * 3);
+
+    if (!fallbackError) {
+      for (const row of withoutInternalNotes(fallback ?? [])) {
+        if (related.length >= limit) break;
+        if (seen.has(row.id)) continue;
+        seen.add(row.id);
+        related.push(row);
+      }
+    }
+  }
+
+  return related.slice(0, limit);
+}
+
+/**
+ * Opportunities whose deadline has already passed but that are still
+ * published. They are hidden from the browse feed (a student cannot apply)
+ * but the detail page still explains what the opportunity was.
+ */
 export async function getOpportunityById(id: string): Promise<Opportunity | null> {
   const supabase = await createClient();
 
@@ -259,9 +364,11 @@ export async function getSavedOpportunities(): Promise<Opportunity[]> {
     return [];
   }
 
-  return (data ?? [])
-    .map((row) => row.opportunities as unknown as Opportunity)
-    .filter(Boolean);
+  return withoutInternalNotes(
+    (data ?? [])
+      .map((row) => row.opportunities as unknown as Opportunity)
+      .filter(Boolean),
+  );
 }
 
 export async function isOpportunitySaved(opportunityId: string): Promise<boolean> {

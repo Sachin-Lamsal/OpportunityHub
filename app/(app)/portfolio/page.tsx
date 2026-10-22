@@ -1,4 +1,5 @@
 import PageHeader from "@/components/layout/PageHeader";
+import Breadcrumbs from "@/components/layout/Breadcrumbs";
 import PortfolioScoreSummary from "@/components/portfolio/PortfolioScoreSummary";
 import ActivityList from "@/components/portfolio/ActivityList";
 import { getActivities } from "@/lib/queries/activities";
@@ -28,6 +29,7 @@ export default async function PortfolioPage() {
 
   return (
     <>
+      <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Portfolio" }]} />
       <PageHeader
         title="Portfolio"
         description="Track your activities and see your portfolio strength."

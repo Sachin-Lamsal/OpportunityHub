@@ -1,5 +1,6 @@
 import Link from "next/link";
 import PageHeader from "@/components/layout/PageHeader";
+import Breadcrumbs from "@/components/layout/Breadcrumbs";
 import CVBuilderClient from "@/components/cv/CVBuilderClient";
 import { buildCVFromProfile } from "@/lib/cv/generate";
 import { getProfile } from "@/lib/actions/auth";
@@ -26,6 +27,9 @@ export default async function CVBuilderPage() {
 
   return (
     <>
+      <Breadcrumbs
+        items={[{ label: "Dashboard", href: "/dashboard" }, { label: "CV Builder" }]}
+      />
       <PageHeader
         title="CV Builder"
         description="Generate a CV from your profile and stored activities."

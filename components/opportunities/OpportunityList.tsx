@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Opportunity } from "@/lib/types";
 import OpportunityCard from "@/components/opportunities/OpportunityCard";
-import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/States";
 import Button from "@/components/ui/Button";
 
 interface OpportunityListProps {
@@ -10,6 +10,8 @@ interface OpportunityListProps {
   emptyMessage?: string;
   compact?: boolean;
   showViewAll?: boolean;
+  /** Query string of the current list, carried into the detail page. */
+  linkQuery?: string;
 }
 
 export default function OpportunityList({
@@ -18,19 +20,21 @@ export default function OpportunityList({
   emptyMessage = "No opportunities found.",
   compact = false,
   showViewAll = false,
+  linkQuery = "",
 }: OpportunityListProps) {
   if (opportunities.length === 0) {
     return (
-      <Card className="text-center py-10">
-        <p className="text-slate-600">{emptyMessage}</p>
-        {showViewAll && (
-          <div className="mt-4">
+      <EmptyState
+        title="Nothing to show here yet"
+        description={emptyMessage}
+        action={
+          showViewAll ? (
             <Button href="/opportunities" variant="outline" size="sm">
               Browse all opportunities
             </Button>
-          </div>
-        )}
-      </Card>
+          ) : undefined
+        }
+      />
     );
   }
 
@@ -43,6 +47,7 @@ export default function OpportunityList({
             opportunity={opportunity}
             isSaved={savedIds.has(opportunity.id)}
             compact={compact}
+            linkQuery={linkQuery}
           />
         ))}
       </div>

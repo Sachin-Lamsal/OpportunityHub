@@ -2,11 +2,20 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import {
   getOpportunityById,
+  getRelatedOpportunities,
+  getSavedOpportunityIds,
   getSavedOpportunityInfo,
 } from "@/lib/queries/opportunities";
 import { formatDate } from "@/lib/utils/format";
+import {
+  isDeadlinePast,
+  isDeadlineUrgent,
+} from "@/lib/opportunities/deadline";
 import PageHeader from "@/components/layout/PageHeader";
+import Breadcrumbs from "@/components/layout/Breadcrumbs";
 import SaveOpportunityButton from "@/components/opportunities/SaveOpportunityButton";
+import CopyLinkButton from "@/components/opportunities/CopyLinkButton";
+import OpportunityList from "@/components/opportunities/OpportunityList";
 import OpportunityTimeline from "@/components/opportunities/OpportunityTimeline";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -28,6 +37,7 @@ import {
 
 interface OpportunityDetailPageProps {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
 function DetailSection({
@@ -77,6 +87,7 @@ export async function generateMetadata({ params }: OpportunityDetailPageProps) {
 
 export default async function OpportunityDetailPage({
   params,
+  searchParams,
 }: OpportunityDetailPageProps) {
   const { id } = await params;
   const opportunity = await getOpportunityById(id);
@@ -85,13 +96,38 @@ export default async function OpportunityDetailPage({
     notFound();
   }
 
-  const [savedInfo, profile, comments, reviews, editions] = await Promise.all([
-    getSavedOpportunityInfo(id),
-    getProfile(),
-    getOpportunityComments(id),
-    getOpportunityReviews(id),
-    getRelatedEditions(opportunity),
-  ]);
+  const [savedInfo, profile, comments, reviews, editions, related, savedIds, query] =
+    await Promise.all([
+      getSavedOpportunityInfo(id),
+      getProfile(),
+      getOpportunityComments(id),
+      getOpportunityReviews(id),
+      getRelatedEditions(opportunity),
+      getRelatedOpportunities(opportunity),
+      getSavedOpportunityIds(),
+      searchParams ??
+        Promise.resolve({} as Record<string, string | string[] | undefined>),
+    ]);
+
+  // The browse page carries its filters into this URL so the student can go
+  // back to the exact list they came from instead of an unfiltered feed.
+  const backQuery = new URLSearchParams(
+    Object.entries(query)
+      .filter(([, value]) => typeof value === "string" && value.trim())
+      .map(([key, value]) => [key, value as string]),
+  ).toString();
+
+  // A student who opened the listing from the saved list goes back to the
+  // saved list, everybody else back to the browse list they came from.
+  const fromSaved = query.from === "saved";
+  const backHref = fromSaved
+    ? "/saved"
+    : backQuery
+      ? `/opportunities?${backQuery}`
+      : "/opportunities";
+
+  const deadlinePassed = isDeadlinePast(opportunity.deadline);
+  const closingSoon = !deadlinePassed && isDeadlineUrgent(opportunity.deadline);
 
   const publisherProfile = opportunity.created_by
     ? await getPublicPublisherProfile(opportunity.created_by)
@@ -123,9 +159,15 @@ export default async function OpportunityDetailPage({
 
   return (
     <>
+      <Breadcrumbs
+        items={[
+          { label: fromSaved ? "Saved" : "Opportunities", href: backHref },
+          { label: opportunity.title },
+        ]}
+      />
       <div className="mb-6">
         <Link
-          href="/opportunities"
+          href={backHref}
           className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
         >
           ← Back to opportunities
@@ -209,11 +251,40 @@ export default async function OpportunityDetailPage({
         </div>
       )}
 
+      {deadlinePassed && (
+        <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
+          <p className="font-semibold">This deadline has passed</p>
+          <p className="mt-1 text-xs leading-relaxed text-rose-800">
+            Applications closed on {formatDate(opportunity.deadline)}. The
+            details stay here for reference — new opportunities are posted every
+            week.
+          </p>
+          <div className="mt-3">
+            <Link
+              href="/opportunities"
+              className="text-sm font-semibold text-rose-900 underline hover:text-rose-700"
+            >
+              Browse open opportunities
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {closingSoon && (
+        <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <p className="font-semibold">Closing soon</p>
+          <p className="mt-1 text-xs leading-relaxed text-amber-800">
+            The deadline is {formatDate(opportunity.deadline)}. Start your
+            application early — popular opportunities fill up quickly.
+          </p>
+        </div>
+      )}
+
       <PageHeader
         title={opportunity.title}
         description={opportunity.organizer ?? undefined}
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {profile?.account_type === "student" && (
               <Button
                 href={`/portfolio/add?opportunityId=${opportunity.id}`}
@@ -233,6 +304,7 @@ export default async function OpportunityDetailPage({
                 Edit opportunity
               </Button>
             )}
+            <CopyLinkButton />
             <SaveOpportunityButton
               key={`${savedInfo.saved}-${savedInfo.remindDeadline}`}
               opportunityId={opportunity.id}
@@ -392,6 +464,27 @@ export default async function OpportunityDetailPage({
           </Card>
         </div>
       </div>
+
+      {related.length > 0 && (
+        <section className="mt-12">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-slate-900">
+              Similar opportunities
+            </h2>
+            <Link
+              href="/opportunities"
+              className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+            >
+              Browse all →
+            </Link>
+          </div>
+          <OpportunityList
+            opportunities={related}
+            savedIds={savedIds}
+            linkQuery={backQuery}
+          />
+        </section>
+      )}
     </>
   );
 }
