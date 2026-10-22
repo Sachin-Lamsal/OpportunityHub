@@ -70,7 +70,7 @@ export default function AISuggestionsPanel({ compact = false }: AISuggestionsPan
           </Button>
           {compact && (
             <Button href="/ai-suggestions" variant="outline">
-              Talk with AI Advisor →
+              Talk with AI advisor
             </Button>
           )}
         </div>
@@ -135,7 +135,7 @@ export default function AISuggestionsPanel({ compact = false }: AISuggestionsPan
             href="/ai-suggestions"
             className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
           >
-            Open interactive AI Advisor chat →
+            Open interactive AI advisor chat
           </Link>
         </div>
       )}

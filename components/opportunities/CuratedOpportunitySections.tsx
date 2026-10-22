@@ -10,14 +10,14 @@ interface CuratedOpportunitySectionsProps {
 }
 
 function CuratedRow({
-  emoji,
+  eyebrow,
   title,
   subtitle,
   opportunities,
   savedIds,
   viewAllHref,
 }: {
-  emoji: string;
+  eyebrow: string;
   title: string;
   subtitle: string;
   opportunities: Opportunity[];
@@ -30,12 +30,10 @@ function CuratedRow({
     <section className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">
-            <span className="mr-1.5" aria-hidden="true">
-              {emoji}
-            </span>
-            {title}
-          </h2>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-700">
+            {eyebrow}
+          </p>
+          <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-900">{title}</h2>
           <p className="text-sm text-slate-600">{subtitle}</p>
         </div>
         {viewAllHref && (
@@ -43,7 +41,7 @@ function CuratedRow({
             href={viewAllHref}
             className="text-sm font-semibold text-indigo-600 hover:text-indigo-700"
           >
-            View all →
+            View all listings
           </Link>
         )}
       </div>
@@ -77,7 +75,7 @@ export default function CuratedOpportunitySections({
   return (
     <div className="space-y-10">
       <CuratedRow
-        emoji="⚡"
+        eyebrow="Closing soon"
         title="Deadlines This Week"
         subtitle="Apply soon — these opportunities close within the next seven days."
         opportunities={deadlinesThisWeek}
@@ -85,16 +83,16 @@ export default function CuratedOpportunitySections({
         viewAllHref="/opportunities?deadline=week"
       />
       <CuratedRow
-        emoji="🔥"
+        eyebrow="Popular with students"
         title="Popular"
         subtitle="Most saved by students on OpportunityHub right now."
         opportunities={popular}
         savedIds={savedIds}
       />
       <CuratedRow
-        emoji="🌟"
-        title="Featured / Editor's Picks"
-        subtitle="Verified listings with rich details — hand-curated and AI-enriched highlights."
+        eyebrow="Editor’s selection"
+        title="Featured opportunities"
+        subtitle="Verified listings selected for their detail, relevance, and application value."
         opportunities={featured}
         savedIds={savedIds}
         viewAllHref="/opportunities?status=verified"

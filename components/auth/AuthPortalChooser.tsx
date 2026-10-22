@@ -85,7 +85,7 @@ export default function AuthPortalChooser({ mode, error, verified }: AuthPortalC
                   </p>
                 </div>
                 <span className="shrink-0 text-sm font-medium text-indigo-600">
-                  {isLogin ? "Log in →" : "Sign up →"}
+                  {isLogin ? "Log in" : "Sign up"}
                 </span>
               </div>
             </Card>
@@ -105,7 +105,7 @@ export default function AuthPortalChooser({ mode, error, verified }: AuthPortalC
                   </p>
                 </div>
                 <span className="shrink-0 text-sm font-medium text-slate-700">
-                  Log in →
+                  Log in
                 </span>
               </div>
             </Card>

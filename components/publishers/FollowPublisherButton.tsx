@@ -38,7 +38,7 @@ export default function FollowPublisherButton({
         disabled={isPending}
         onClick={handleToggle}
       >
-        {isPending ? "…" : following ? "Following ✓" : "+ Follow"}
+        {isPending ? "Updating" : following ? "Following" : "Follow"}
       </Button>
       {error && <p className="text-xs text-rose-600 max-w-[12rem] text-right">{error}</p>}
     </div>

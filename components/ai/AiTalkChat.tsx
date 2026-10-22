@@ -123,7 +123,7 @@ export default function AiTalkChat() {
                   disabled={isPending}
                   className="w-full text-left text-xs bg-white hover:bg-indigo-50/50 hover:border-indigo-200 border border-slate-200 rounded-xl p-2.5 text-slate-700 transition shadow-2xs"
                 >
-                  💡 {q}
+                  {q}
                 </button>
               ))}
             </div>

@@ -56,7 +56,7 @@ export default async function MyOpportunitiesPage({
         action={
           <div className="flex flex-wrap items-center gap-2">
             <Button href="/opportunities/ingest" variant="outline" size="sm">
-              ⚡ Web / OCR Ingest
+              Import from web or document
             </Button>
             <Button href="/opportunities/new" size="sm">
               + Add opportunity

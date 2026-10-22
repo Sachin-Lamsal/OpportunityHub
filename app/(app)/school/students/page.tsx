@@ -73,7 +73,7 @@ export default async function SchoolStudentsPage() {
                       href={`/school/students/${student.id}`}
                       className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
                     >
-                      View →
+                      View
                     </Link>
                   </td>
                 </tr>

@@ -125,7 +125,7 @@ export default function CommunitySection({
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            💡 Participant Advice ({initialReviews.length})
+            Participant advice ({initialReviews.length})
           </button>
           <button
             type="button"
@@ -241,7 +241,7 @@ export default function CommunitySection({
                       </span>
                       {rev.verified_participant && (
                         <span className="rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold">
-                          ✓ Verified Participant
+                          Verified participant
                         </span>
                       )}
                     </div>

@@ -87,7 +87,7 @@ export default function OpportunityCard({
           href={`/opportunities/${opportunity.id}`}
           className="font-medium text-indigo-600 hover:text-indigo-700"
         >
-          View details →
+          View details
         </Link>
       </div>
     </Card>

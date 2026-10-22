@@ -8,6 +8,7 @@ import { SUBJECT_AREAS, ACTIVITY_CATEGORIES } from "@/lib/constants";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
+import { CompassIcon } from "@/components/ui/Icons";
 
 interface OnboardingWizardClientProps {
   initialOpportunities: Opportunity[];
@@ -129,8 +130,8 @@ export default function OnboardingWizardClient({
       {/* STEP 1: Introduction */}
       {step === 1 && (
         <Card className="text-center p-8 space-y-6">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-3xl">
-            🚀
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-xl border border-indigo-100 bg-indigo-50 text-indigo-700">
+            <CompassIcon className="h-6 w-6" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-slate-900">
@@ -143,21 +144,21 @@ export default function OnboardingWizardClient({
 
           <div className="grid gap-4 sm:grid-cols-3 text-left pt-2">
             <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4">
-              <span className="text-xl">🎯</span>
+              <span className="font-mono text-xs font-semibold tracking-[0.16em] text-indigo-700">01</span>
               <h3 className="font-semibold text-slate-900 text-sm mt-2">Targeted Matches</h3>
               <p className="text-xs text-slate-500 mt-1">
                 Opportunities filtered to your specific curriculum and interests.
               </p>
             </div>
             <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4">
-              <span className="text-xl">📁</span>
+              <span className="font-mono text-xs font-semibold tracking-[0.16em] text-indigo-700">02</span>
               <h3 className="font-semibold text-slate-900 text-sm mt-2">Portfolio Builder</h3>
               <p className="text-xs text-slate-500 mt-1">
                 Track extracurriculars and auto-generate an academic CV.
               </p>
             </div>
             <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4">
-              <span className="text-xl">🤖</span>
+              <span className="font-mono text-xs font-semibold tracking-[0.16em] text-indigo-700">03</span>
               <h3 className="font-semibold text-slate-900 text-sm mt-2">AI Advisor</h3>
               <p className="text-xs text-slate-500 mt-1">
                 Admissions mentorship aware of your past achievements.
@@ -167,7 +168,7 @@ export default function OnboardingWizardClient({
 
           <div className="pt-4">
             <Button onClick={() => setStep(2)} size="md" className="w-full sm:w-auto px-8">
-              Start Personalization →
+              Start personalising
             </Button>
           </div>
         </Card>
@@ -254,7 +255,7 @@ export default function OnboardingWizardClient({
                         disabled={isAdded}
                         onClick={() => handleAddOpportunity(opp)}
                       >
-                        {isAdded ? "✓ Added" : "+ Add to Portfolio"}
+                        {isAdded ? "Added" : "Add to portfolio"}
                       </Button>
                     </div>
                   </div>
@@ -270,7 +271,7 @@ export default function OnboardingWizardClient({
               size="sm"
               onClick={() => setShowCustomModal(true)}
             >
-              + Add Custom Experience
+              Add custom experience
             </Button>
 
             <div className="flex gap-2">
@@ -278,7 +279,7 @@ export default function OnboardingWizardClient({
                 Skip for now
               </Button>
               <Button type="button" onClick={() => setStep(3)}>
-                Next: Interests →
+                Continue to interests
               </Button>
             </div>
           </div>
@@ -367,7 +368,6 @@ export default function OnboardingWizardClient({
                         : "bg-white border-slate-300 text-slate-700 hover:border-slate-400"
                     }`}
                   >
-                    {isSelected ? "✓ " : "+ "}
                     {subject}
                   </button>
                 );
@@ -392,10 +392,10 @@ export default function OnboardingWizardClient({
 
           <div className="flex items-center justify-between pt-4 border-t border-slate-200">
             <Button type="button" variant="outline" onClick={() => setStep(2)}>
-              ← Back
+              Back
             </Button>
             <Button type="button" onClick={() => setStep(4)}>
-              Review & Finish →
+              Review and finish
             </Button>
           </div>
         </Card>
@@ -404,8 +404,8 @@ export default function OnboardingWizardClient({
       {/* STEP 4: Review & Ready */}
       {step === 4 && (
         <Card className="p-8 text-center space-y-6">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 text-3xl">
-            ✨
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-700">
+            <CompassIcon className="h-6 w-6" />
           </div>
           <div>
             <h2 className="text-2xl font-bold text-slate-900">You&apos;re all set!</h2>
@@ -435,7 +435,7 @@ export default function OnboardingWizardClient({
 
           <div className="pt-2">
             <Button onClick={handleFinish} disabled={isPending} size="md" className="w-full sm:w-auto px-8">
-              {isPending ? "Entering OpportunityHub..." : "Enter OpportunityHub Feed →"}
+              {isPending ? "Preparing your dashboard" : "Enter OpportunityHub"}
             </Button>
           </div>
         </Card>

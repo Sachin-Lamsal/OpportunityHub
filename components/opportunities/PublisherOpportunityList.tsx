@@ -137,7 +137,7 @@ export default function PublisherOpportunityList({
               href={`/opportunities/${opportunity.id}`}
               className="font-medium text-slate-600 hover:text-slate-900"
             >
-              View →
+              View
             </Link>
 
             <div className="flex items-center gap-2">

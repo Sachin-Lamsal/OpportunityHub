@@ -79,7 +79,7 @@ export default function ActivityCard({
             </span>
             {activity.school_verified && (
               <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
-                ✓ Verified by school
+                Verified by school
               </span>
             )}
           </div>

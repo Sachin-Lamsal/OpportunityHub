@@ -7,6 +7,7 @@ import {
   updateOpportunityReminder,
 } from "@/lib/actions/opportunities";
 import Button from "@/components/ui/Button";
+import { BellIcon } from "@/components/ui/Icons";
 
 interface SaveOpportunityButtonProps {
   opportunityId: string;
@@ -89,7 +90,7 @@ export default function SaveOpportunityButton({
         aria-label={saved ? "Unsave opportunity" : "Save opportunity"}
         className="shrink-0"
       >
-        {isPending ? "…" : saved ? "Saved ✓" : "Save"}
+        {isPending ? "Saving" : saved ? "Saved" : "Save"}
       </Button>
 
       {saved && showReminderToggle && hasDeadline && (
@@ -97,19 +98,15 @@ export default function SaveOpportunityButton({
           type="button"
           onClick={handleToggleReminder}
           disabled={isReminderPending}
-          title={
+          title={remind ? "Deadline reminders are on. Click to mute." : "Deadline reminders are muted. Click to turn on."}
+          className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
             remind
-              ? "Deadline reminders are ON. Click to mute."
-              : "Deadline reminders are OFF. Click to turn on."
-          }
-          className={`inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-medium transition-colors ${
-            remind
-              ? "bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100"
-              : "bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200 hover:text-slate-700"
+              ? "border-indigo-200 bg-indigo-50 text-indigo-800 hover:bg-indigo-100"
+              : "border-slate-200 bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700"
           }`}
         >
-          <span>{remind ? "🔔" : "🔕"}</span>
-          <span>{isReminderPending ? "Saving…" : remind ? "Deadline alert on" : "Muted"}</span>
+          <BellIcon className="h-3.5 w-3.5" />
+          <span>{isReminderPending ? "Updating" : remind ? "Reminders on" : "Reminders muted"}</span>
         </button>
       )}
     </div>

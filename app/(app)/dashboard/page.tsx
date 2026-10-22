@@ -17,6 +17,7 @@ import { getActivities, getRecentActivities } from "@/lib/queries/activities";
 import { calculatePortfolioScores, getWeakestCategories } from "@/lib/portfolio/score";
 import { getProfile } from "@/lib/actions/auth";
 import Button from "@/components/ui/Button";
+import { SchoolIcon } from "@/components/ui/Icons";
 
 export const metadata = {
   title: "Dashboard",
@@ -99,7 +100,7 @@ export default async function DashboardPage() {
                 href={`/school/${profile.school_id}`}
                 className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
               >
-                View school profile →
+                View school profile
               </Link>
             </div>
             {schoolOpportunities.length > 0 ? (
@@ -118,10 +119,10 @@ export default async function DashboardPage() {
             )}
           </section>
         ) : (
-          <section className="rounded-2xl border border-dashed border-indigo-200 bg-indigo-50/40 p-4 text-sm flex flex-wrap items-center justify-between gap-3">
+          <section className="rounded-xl border border-dashed border-indigo-200 bg-indigo-50/40 p-5 text-sm flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="font-semibold text-indigo-950 flex items-center gap-1.5">
-                <span>🏫</span> Are you affiliated with a high school or college?
+              <p className="font-semibold text-indigo-950 flex items-center gap-2">
+                <SchoolIcon className="h-4 w-4" /> Are you affiliated with a high school or college?
               </p>
               <p className="text-xs text-indigo-700 mt-0.5">
                 Link your school code to unlock school-specific programs and get counselor guidance on your portfolio.
@@ -131,7 +132,7 @@ export default async function DashboardPage() {
               href="/profile"
               className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors"
             >
-              Link school →
+              Link your school
             </Link>
           </section>
         )}
@@ -156,13 +157,13 @@ export default async function DashboardPage() {
                 href="/portfolio/add"
                 className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
               >
-                Add activity →
+                Add activity
               </Link>
               <Link
                 href="/profile"
                 className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
               >
-                Update profile →
+                Update profile
               </Link>
             </div>
           </Card>
@@ -192,7 +193,7 @@ export default async function DashboardPage() {
               href="/ai-suggestions"
               className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
             >
-              Talk to Advisor →
+              Talk to advisor
             </Link>
           </div>
           <AISuggestionsPanel compact />
@@ -260,7 +261,7 @@ export default async function DashboardPage() {
                 href="/my-opportunities"
                 className="text-xs font-semibold text-slate-600 hover:text-indigo-600"
               >
-                Manage all →
+                Manage all
               </Link>
               <Link
                 href="/opportunities/new"

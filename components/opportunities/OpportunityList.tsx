@@ -53,7 +53,7 @@ export default function OpportunityList({
             href="/opportunities"
             className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
           >
-            View all opportunities →
+            View all opportunities
           </Link>
         </div>
       )}
