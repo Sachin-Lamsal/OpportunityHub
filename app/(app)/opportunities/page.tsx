@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import PageHeader from "@/components/layout/PageHeader";
+import Button from "@/components/ui/Button";
 import OpportunityFilters from "@/components/opportunities/OpportunityFilters";
 import OpportunityList from "@/components/opportunities/OpportunityList";
 import {
@@ -87,6 +88,11 @@ export default function OpportunitiesPage({ searchParams }: OpportunitiesPagePro
       <PageHeader
         title="Opportunities"
         description="Discover competitions, workshops, internships, and more."
+        action={
+          <Button href="/opportunities/new" size="sm">
+            + Add opportunity
+          </Button>
+        }
       />
 
       <div className="space-y-6">

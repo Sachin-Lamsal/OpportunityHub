@@ -51,7 +51,7 @@ async function requirePublisherAccount(): Promise<
   if (!canManageOpportunities(profile?.account_type as AccountType | undefined)) {
     return {
       ok: false,
-      error: "Only schools and organizations can ingest new opportunities.",
+      error: "You must have an active account to ingest new opportunities.",
     };
   }
 
@@ -272,7 +272,7 @@ export async function saveIngestedOpportunity(
   if (!canManageOpportunities(accountType)) {
     return {
       success: false,
-      error: "Only schools and organizations can ingest new opportunities.",
+      error: "You must have an active account to ingest new opportunities.",
     };
   }
 

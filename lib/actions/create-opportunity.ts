@@ -17,7 +17,7 @@ export interface CreateOpportunityState {
 
 interface PublisherContext {
   id: string;
-  accountType: Extract<AccountType, "school" | "organization">;
+  accountType: AccountType;
   organizer: string;
 }
 
@@ -27,6 +27,7 @@ interface OpportunityFields {
   description: string;
   registration_link: string | null;
   source_url: string | null;
+  organizer?: string | null;
   deadline: string | null;
   start_date: string | null;
   end_date: string | null;
@@ -40,10 +41,12 @@ interface OpportunityFields {
 }
 
 function dashboardPath(accountType: PublisherContext["accountType"]): string {
+  if (accountType === "student") return "/dashboard";
   return accountType === "school" ? "/school/dashboard" : "/org/dashboard";
 }
 
 function publisherPath(context: PublisherContext): string {
+  if (context.accountType === "student") return "/profile";
   return context.accountType === "school" ? `/school/${context.id}` : `/org/${context.id}`;
 }
 
@@ -63,22 +66,29 @@ async function getPublisherContext(): Promise<
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("account_type, organization_name")
+    .select("account_type, organization_name, full_name")
     .eq("id", user.id)
     .maybeSingle();
 
   const accountType = profile?.account_type as AccountType | undefined;
-  if (accountType !== "school" && accountType !== "organization") {
-    return { error: "Only schools and organizations can manage opportunities." };
+  if (!accountType) {
+    return { error: "You must be logged in to manage opportunities." };
   }
+
+  const defaultOrganizer =
+    profile?.organization_name?.trim() ||
+    profile?.full_name?.trim() ||
+    (accountType === "school"
+      ? "School"
+      : accountType === "organization"
+        ? "Organization"
+        : "Student Contributor");
 
   return {
     context: {
       id: user.id,
       accountType,
-      organizer:
-        profile?.organization_name?.trim() ||
-        (accountType === "school" ? "School" : "Organization"),
+      organizer: defaultOrganizer,
     },
   };
 }
@@ -132,12 +142,15 @@ function parseOpportunityFields(
     return { error: "The end date cannot be before the start date." };
   }
 
+  const organizerInput = textValue(formData, "organizer");
+
   return {
     intent,
     fields: {
       title,
       type,
       description,
+      organizer: organizerInput,
       registration_link: registrationLink,
       source_url: sourceUrl,
       deadline: textValue(formData, "deadline"),
@@ -193,11 +206,15 @@ export async function createOpportunity(
     }
   }
 
+  const organizer =
+    parsed.fields.organizer ||
+    publisher.context.organizer;
+
   const { data, error } = await supabase
     .from("opportunities")
     .insert({
       ...parsed.fields,
-      organizer: publisher.context.organizer,
+      organizer,
       created_by: publisher.context.id,
       source_type: "manual",
       lifecycle_status: parsed.intent === "review" ? "pending_review" : "draft",

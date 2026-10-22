@@ -75,14 +75,23 @@ export default function OpportunityForm({
             </p>
           </div>
 
-          <Input
-            label="Title"
-            name="title"
-            type="text"
-            required
-            defaultValue={data?.title ?? ""}
-            placeholder="e.g. National Science Olympiad 2026"
-          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="Title"
+              name="title"
+              type="text"
+              required
+              defaultValue={data?.title ?? ""}
+              placeholder="e.g. National Science Olympiad 2026"
+            />
+            <Input
+              label="Organizer or Host (optional)"
+              name="organizer"
+              type="text"
+              defaultValue={data?.organizer ?? ""}
+              placeholder="e.g. Nepal Robotics Club, British Council"
+            />
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Select

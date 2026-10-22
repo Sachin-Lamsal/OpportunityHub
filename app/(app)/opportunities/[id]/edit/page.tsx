@@ -34,7 +34,11 @@ export default async function EditOpportunityPage({
   }
 
   const backHref =
-    profile.account_type === "school" ? "/school/dashboard" : "/org/dashboard";
+    profile.account_type === "school"
+      ? "/school/dashboard"
+      : profile.account_type === "organization"
+        ? "/org/dashboard"
+        : "/dashboard";
 
   return (
     <>

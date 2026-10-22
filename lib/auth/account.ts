@@ -60,7 +60,11 @@ export function isOrgAppRoute(pathname: string): boolean {
 export function canManageOpportunities(
   accountType: AccountType | null | undefined,
 ): boolean {
-  return accountType === "school" || accountType === "organization";
+  return (
+    accountType === "school" ||
+    accountType === "organization" ||
+    accountType === "student"
+  );
 }
 
 export const UUID_RE =

@@ -9,7 +9,9 @@ import {
   getOpportunities,
   getSavedOpportunities,
   getSavedOpportunityIds,
+  getOpportunitiesCreatedByUser,
 } from "@/lib/queries/opportunities";
+import PublisherOpportunityList from "@/components/opportunities/PublisherOpportunityList";
 import { getActivities, getRecentActivities } from "@/lib/queries/activities";
 import { calculatePortfolioScores, getWeakestCategories } from "@/lib/portfolio/score";
 import { getProfile } from "@/lib/actions/auth";
@@ -38,6 +40,9 @@ export default async function DashboardPage() {
 
   const scores = calculatePortfolioScores(activities);
   const weakCategories = getWeakestCategories(scores);
+  const myCreatedOpportunities = profile?.id
+    ? await getOpportunitiesCreatedByUser(profile.id, 5)
+    : [];
 
   return (
     <>
@@ -180,6 +185,40 @@ export default async function DashboardPage() {
               <div className="mt-3">
                 <Button href="/portfolio/add" size="sm">
                   Add your first activity
+                </Button>
+              </div>
+            </Card>
+          )}
+        </section>
+
+        <section>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              7. Opportunities you shared
+            </h2>
+            <Link
+              href="/opportunities/new"
+              className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+            >
+              + Add opportunity
+            </Link>
+          </div>
+          {myCreatedOpportunities.length > 0 ? (
+            <PublisherOpportunityList
+              opportunities={myCreatedOpportunities}
+              emptyMessage="You haven't shared any opportunities yet."
+            />
+          ) : (
+            <Card className="py-8 text-center">
+              <p className="text-sm text-slate-600">
+                Know about a competition, workshop, or program? Share it with students across Kathmandu!
+              </p>
+              <div className="mt-4 flex flex-wrap justify-center gap-3">
+                <Button href="/opportunities/new" size="sm">
+                  Add an opportunity
+                </Button>
+                <Button href="/opportunities/ingest" variant="outline" size="sm">
+                  AI Link / Poster Ingest
                 </Button>
               </div>
             </Card>

@@ -86,7 +86,7 @@ stable
 as $$
   select exists (
     select 1 from public.profiles
-    where id = user_uuid and account_type in ('school', 'organization')
+    where id = user_uuid and account_type in ('school', 'organization', 'student')
   );
 $$;
 
