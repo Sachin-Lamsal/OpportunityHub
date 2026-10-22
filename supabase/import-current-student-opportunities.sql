@@ -7,12 +7,12 @@
 -- 2. In Supabase Dashboard -> SQL Editor, paste this entire file and click Run.
 -- 3. Review newly added listings from /admin/publisher-review before publishing.
 --
--- This keeps 25 of the 27 original detailed listings. It excludes only:
+-- This keeps 27 of the 29 original detailed opportunity rows. It excludes only:
 --   * #YouAreWelcomeHere Scholarship: no single, actionable deadline/app route.
 --   * True Blue Fellowship: the listed cycle is closed and no new application is open.
 --
--- It is safe to run again. ON CONFLICT DO NOTHING skips any row that already
--- exists under a unique title or another database uniqueness rule. No data is deleted.
+-- It is safe to run again. A single ON CONFLICT DO NOTHING guard skips any
+-- duplicate title or other unique database conflict. No data is deleted.
 
 begin;
 
@@ -114,39 +114,7 @@ INSERT INTO public.opportunities (
     'pending_review',
     false,
     'unverified'
-)
-ON CONFLICT DO NOTHING
-RETURNING id, title, lifecycle_status, created_at;
-
-INSERT INTO public.opportunities (
-    title,
-    type,
-    description,
-    organizer,
-    registration_link,
-    deadline,
-    start_date,
-    end_date,
-    location,
-    is_online,
-    subject_area,
-    grade_requirements,
-    cost,
-    time_commitment,
-    skills_gained,
-    difficulty_level,
-    tags,
-    prep_resources,
-    application_steps,
-    eligibility_details,
-    contact_info,
-    source_url,
-    source_type,
-    created_by,
-    lifecycle_status,
-    is_verified,
-    verification_status
-) VALUES
+),
 (
     'Seventh Annual Nepal AI School (ANAIS 2026)',
     'Workshop',
@@ -186,39 +154,7 @@ INSERT INTO public.opportunities (
     'pending_review',
     false,
     'unverified'
-)
-ON CONFLICT DO NOTHING
-RETURNING id, title, lifecycle_status, created_at;
-
-INSERT INTO public.opportunities (
-    title,
-    type,
-    description,
-    organizer,
-    registration_link,
-    deadline,
-    start_date,
-    end_date,
-    location,
-    is_online,
-    subject_area,
-    grade_requirements,
-    cost,
-    time_commitment,
-    skills_gained,
-    difficulty_level,
-    tags,
-    prep_resources,
-    application_steps,
-    eligibility_details,
-    contact_info,
-    source_url,
-    source_type,
-    created_by,
-    lifecycle_status,
-    is_verified,
-    verification_status
-) VALUES
+),
 (
     'Admissions Open for Foundation Level, Application Level, Advisory Level at Gurukul CA',
     'Other',
@@ -256,39 +192,7 @@ INSERT INTO public.opportunities (
     'pending_review',
     false,
     'unverified'
-)
-ON CONFLICT DO NOTHING
-RETURNING id, title, lifecycle_status, created_at;
-
-INSERT INTO public.opportunities (
-    title,
-    type,
-    description,
-    organizer,
-    registration_link,
-    deadline,
-    start_date,
-    end_date,
-    location,
-    is_online,
-    subject_area,
-    grade_requirements,
-    cost,
-    time_commitment,
-    skills_gained,
-    difficulty_level,
-    tags,
-    prep_resources,
-    application_steps,
-    eligibility_details,
-    contact_info,
-    source_url,
-    source_type,
-    created_by,
-    lifecycle_status,
-    is_verified,
-    verification_status
-) VALUES
+),
 (
     'Join the NPF for Next-Gen Reforms',
     'Other',
@@ -317,39 +221,7 @@ INSERT INTO public.opportunities (
     'pending_review',
     false,
     'unverified'
-)
-ON CONFLICT DO NOTHING
-RETURNING id, title, lifecycle_status, created_at;
-
-INSERT INTO public.opportunities (
-    title,
-    type,
-    description,
-    organizer,
-    registration_link,
-    deadline,
-    start_date,
-    end_date,
-    location,
-    is_online,
-    subject_area,
-    grade_requirements,
-    cost,
-    time_commitment,
-    skills_gained,
-    difficulty_level,
-    tags,
-    prep_resources,
-    application_steps,
-    eligibility_details,
-    contact_info,
-    source_url,
-    source_type,
-    created_by,
-    lifecycle_status,
-    is_verified,
-    verification_status
-) VALUES
+),
 (
     'UBC International Scholars Program - September 2027 entry',
     'Scholarship',
@@ -378,39 +250,7 @@ INSERT INTO public.opportunities (
     'pending_review',
     false,
     'unverified'
-)
-ON CONFLICT DO NOTHING
-RETURNING id, title, lifecycle_status, created_at;
-
-INSERT INTO public.opportunities (
-    title,
-    type,
-    description,
-    organizer,
-    registration_link,
-    deadline,
-    start_date,
-    end_date,
-    location,
-    is_online,
-    subject_area,
-    grade_requirements,
-    cost,
-    time_commitment,
-    skills_gained,
-    difficulty_level,
-    tags,
-    prep_resources,
-    application_steps,
-    eligibility_details,
-    contact_info,
-    source_url,
-    source_type,
-    created_by,
-    lifecycle_status,
-    is_verified,
-    verification_status
-) VALUES
+),
 (
     'Cliburn International Competition for Young Pianists 2027',
     'Competition',
@@ -439,39 +279,7 @@ INSERT INTO public.opportunities (
     'pending_review',
     false,
     'unverified'
-)
-ON CONFLICT DO NOTHING
-RETURNING id, title, lifecycle_status, created_at;
-
-INSERT INTO public.opportunities (
-    title,
-    type,
-    description,
-    organizer,
-    registration_link,
-    deadline,
-    start_date,
-    end_date,
-    location,
-    is_online,
-    subject_area,
-    grade_requirements,
-    cost,
-    time_commitment,
-    skills_gained,
-    difficulty_level,
-    tags,
-    prep_resources,
-    application_steps,
-    eligibility_details,
-    contact_info,
-    source_url,
-    source_type,
-    created_by,
-    lifecycle_status,
-    is_verified,
-    verification_status
-) VALUES
+),
 (
     'Yale International Relations Association Global Essay Competition 2027',
     'Competition',
@@ -500,39 +308,7 @@ INSERT INTO public.opportunities (
     'pending_review',
     false,
     'unverified'
-)
-ON CONFLICT DO NOTHING
-RETURNING id, title, lifecycle_status, created_at;
-
-INSERT INTO public.opportunities (
-    title,
-    type,
-    description,
-    organizer,
-    registration_link,
-    deadline,
-    start_date,
-    end_date,
-    location,
-    is_online,
-    subject_area,
-    grade_requirements,
-    cost,
-    time_commitment,
-    skills_gained,
-    difficulty_level,
-    tags,
-    prep_resources,
-    application_steps,
-    eligibility_details,
-    contact_info,
-    source_url,
-    source_type,
-    created_by,
-    lifecycle_status,
-    is_verified,
-    verification_status
-) VALUES
+),
 (
     'Blue Ocean Student Entrepreneur Competition 2027',
     'Competition',
@@ -561,39 +337,7 @@ INSERT INTO public.opportunities (
     'pending_review',
     false,
     'unverified'
-)
-ON CONFLICT DO NOTHING
-RETURNING id, title, lifecycle_status, created_at;
-
-INSERT INTO public.opportunities (
-    title,
-    type,
-    description,
-    organizer,
-    registration_link,
-    deadline,
-    start_date,
-    end_date,
-    location,
-    is_online,
-    subject_area,
-    grade_requirements,
-    cost,
-    time_commitment,
-    skills_gained,
-    difficulty_level,
-    tags,
-    prep_resources,
-    application_steps,
-    eligibility_details,
-    contact_info,
-    source_url,
-    source_type,
-    created_by,
-    lifecycle_status,
-    is_verified,
-    verification_status
-) VALUES
+),
 (
     'Diamond Challenge 2027 - High School Entrepreneurship Competition',
     'Competition',
@@ -622,39 +366,7 @@ INSERT INTO public.opportunities (
     'pending_review',
     false,
     'unverified'
-)
-ON CONFLICT DO NOTHING
-RETURNING id, title, lifecycle_status, created_at;
-
-INSERT INTO public.opportunities (
-    title,
-    type,
-    description,
-    organizer,
-    registration_link,
-    deadline,
-    start_date,
-    end_date,
-    location,
-    is_online,
-    subject_area,
-    grade_requirements,
-    cost,
-    time_commitment,
-    skills_gained,
-    difficulty_level,
-    tags,
-    prep_resources,
-    application_steps,
-    eligibility_details,
-    contact_info,
-    source_url,
-    source_type,
-    created_by,
-    lifecycle_status,
-    is_verified,
-    verification_status
-) VALUES
+),
 (
     'Trust for Sustainable Living International Student Competition 2027 - Navigating El Niño',
     'Competition',
@@ -683,39 +395,7 @@ INSERT INTO public.opportunities (
     'pending_review',
     false,
     'unverified'
-)
-ON CONFLICT DO NOTHING
-RETURNING id, title, lifecycle_status, created_at;
-
-INSERT INTO public.opportunities (
-    title,
-    type,
-    description,
-    organizer,
-    registration_link,
-    deadline,
-    start_date,
-    end_date,
-    location,
-    is_online,
-    subject_area,
-    grade_requirements,
-    cost,
-    time_commitment,
-    skills_gained,
-    difficulty_level,
-    tags,
-    prep_resources,
-    application_steps,
-    eligibility_details,
-    contact_info,
-    source_url,
-    source_type,
-    created_by,
-    lifecycle_status,
-    is_verified,
-    verification_status
-) VALUES
+),
 (
     'SMBC Programming Contest #2 - AtCoder Beginner Contest 481',
     'Competition',
@@ -744,39 +424,7 @@ INSERT INTO public.opportunities (
     'pending_review',
     false,
     'unverified'
-)
-ON CONFLICT DO NOTHING
-RETURNING id, title, lifecycle_status, created_at;
-
-INSERT INTO public.opportunities (
-    title,
-    type,
-    description,
-    organizer,
-    registration_link,
-    deadline,
-    start_date,
-    end_date,
-    location,
-    is_online,
-    subject_area,
-    grade_requirements,
-    cost,
-    time_commitment,
-    skills_gained,
-    difficulty_level,
-    tags,
-    prep_resources,
-    application_steps,
-    eligibility_details,
-    contact_info,
-    source_url,
-    source_type,
-    created_by,
-    lifecycle_status,
-    is_verified,
-    verification_status
-) VALUES
+),
 (
     'Abbott and Fenner Scholarship',
     'Scholarship',
@@ -805,39 +453,7 @@ INSERT INTO public.opportunities (
     'pending_review',
     false,
     'unverified'
-)
-ON CONFLICT DO NOTHING
-RETURNING id, title, lifecycle_status, created_at;
-
-INSERT INTO public.opportunities (
-    title,
-    type,
-    description,
-    organizer,
-    registration_link,
-    deadline,
-    start_date,
-    end_date,
-    location,
-    is_online,
-    subject_area,
-    grade_requirements,
-    cost,
-    time_commitment,
-    skills_gained,
-    difficulty_level,
-    tags,
-    prep_resources,
-    application_steps,
-    eligibility_details,
-    contact_info,
-    source_url,
-    source_type,
-    created_by,
-    lifecycle_status,
-    is_verified,
-    verification_status
-) VALUES
+),
 (
     'Bennington College Young Artists Awards 2026–2027',
     'Competition',
@@ -924,39 +540,7 @@ INSERT INTO public.opportunities (
     'pending_review',
     false,
     'unverified'
-)
-ON CONFLICT DO NOTHING
-RETURNING id, title, lifecycle_status, created_at;
-
-INSERT INTO public.opportunities (
-    title,
-    type,
-    description,
-    organizer,
-    registration_link,
-    deadline,
-    start_date,
-    end_date,
-    location,
-    is_online,
-    subject_area,
-    grade_requirements,
-    cost,
-    time_commitment,
-    skills_gained,
-    difficulty_level,
-    tags,
-    prep_resources,
-    application_steps,
-    eligibility_details,
-    contact_info,
-    source_url,
-    source_type,
-    created_by,
-    lifecycle_status,
-    is_verified,
-    verification_status
-) VALUES
+),
 (
     'Curiosity Club',
     'Club',
@@ -992,39 +576,7 @@ INSERT INTO public.opportunities (
     'pending_review',
     false,
     'unverified'
-)
-ON CONFLICT DO NOTHING
-RETURNING id, title, lifecycle_status, created_at;
-
-INSERT INTO public.opportunities (
-    title,
-    type,
-    description,
-    organizer,
-    registration_link,
-    deadline,
-    start_date,
-    end_date,
-    location,
-    is_online,
-    subject_area,
-    grade_requirements,
-    cost,
-    time_commitment,
-    skills_gained,
-    difficulty_level,
-    tags,
-    prep_resources,
-    application_steps,
-    eligibility_details,
-    contact_info,
-    source_url,
-    source_type,
-    created_by,
-    lifecycle_status,
-    is_verified,
-    verification_status
-) VALUES
+),
 (
     'MOOC on Youth, Democracy and Technology',
     'Other',
@@ -1061,39 +613,7 @@ INSERT INTO public.opportunities (
     'pending_review',
     false,
     'unverified'
-)
-ON CONFLICT DO NOTHING
-RETURNING id, title, lifecycle_status, created_at;
-
-INSERT INTO public.opportunities (
-    title,
-    type,
-    description,
-    organizer,
-    registration_link,
-    deadline,
-    start_date,
-    end_date,
-    location,
-    is_online,
-    subject_area,
-    grade_requirements,
-    cost,
-    time_commitment,
-    skills_gained,
-    difficulty_level,
-    tags,
-    prep_resources,
-    application_steps,
-    eligibility_details,
-    contact_info,
-    source_url,
-    source_type,
-    created_by,
-    lifecycle_status,
-    is_verified,
-    verification_status
-) VALUES
+),
 (
     'CS50''s Introduction to Programming with Python',
     'Other',
@@ -1122,39 +642,7 @@ INSERT INTO public.opportunities (
     'pending_review',
     false,
     'unverified'
-)
-ON CONFLICT DO NOTHING
-RETURNING id, title, lifecycle_status, created_at;
-
-INSERT INTO public.opportunities (
-    title,
-    type,
-    description,
-    organizer,
-    registration_link,
-    deadline,
-    start_date,
-    end_date,
-    location,
-    is_online,
-    subject_area,
-    grade_requirements,
-    cost,
-    time_commitment,
-    skills_gained,
-    difficulty_level,
-    tags,
-    prep_resources,
-    application_steps,
-    eligibility_details,
-    contact_info,
-    source_url,
-    source_type,
-    created_by,
-    lifecycle_status,
-    is_verified,
-    verification_status
-) VALUES
+),
 (
     'MIT Free Online Courses & Open Learning',
     'Other',
@@ -1183,39 +671,7 @@ INSERT INTO public.opportunities (
     'pending_review',
     false,
     'unverified'
-)
-ON CONFLICT DO NOTHING
-RETURNING id, title, lifecycle_status, created_at;
-
-INSERT INTO public.opportunities (
-    title,
-    type,
-    description,
-    organizer,
-    registration_link,
-    deadline,
-    start_date,
-    end_date,
-    location,
-    is_online,
-    subject_area,
-    grade_requirements,
-    cost,
-    time_commitment,
-    skills_gained,
-    difficulty_level,
-    tags,
-    prep_resources,
-    application_steps,
-    eligibility_details,
-    contact_info,
-    source_url,
-    source_type,
-    created_by,
-    lifecycle_status,
-    is_verified,
-    verification_status
-) VALUES
+),
 (
     'Season of AI – Episode 02',
     'Workshop',
@@ -1244,39 +700,7 @@ INSERT INTO public.opportunities (
     'pending_review',
     false,
     'unverified'
-)
-ON CONFLICT DO NOTHING
-RETURNING id, title, lifecycle_status, created_at;
-
-INSERT INTO public.opportunities (
-    title,
-    type,
-    description,
-    organizer,
-    registration_link,
-    deadline,
-    start_date,
-    end_date,
-    location,
-    is_online,
-    subject_area,
-    grade_requirements,
-    cost,
-    time_commitment,
-    skills_gained,
-    difficulty_level,
-    tags,
-    prep_resources,
-    application_steps,
-    eligibility_details,
-    contact_info,
-    source_url,
-    source_type,
-    created_by,
-    lifecycle_status,
-    is_verified,
-    verification_status
-) VALUES
+),
 (
     'NASA Space Apps Challenge 2026',
     'Competition',
@@ -1305,39 +729,7 @@ INSERT INTO public.opportunities (
     'pending_review',
     false,
     'unverified'
-)
-ON CONFLICT DO NOTHING
-RETURNING id, title, lifecycle_status, created_at;
-
-INSERT INTO public.opportunities (
-    title,
-    type,
-    description,
-    organizer,
-    registration_link,
-    deadline,
-    start_date,
-    end_date,
-    location,
-    is_online,
-    subject_area,
-    grade_requirements,
-    cost,
-    time_commitment,
-    skills_gained,
-    difficulty_level,
-    tags,
-    prep_resources,
-    application_steps,
-    eligibility_details,
-    contact_info,
-    source_url,
-    source_type,
-    created_by,
-    lifecycle_status,
-    is_verified,
-    verification_status
-) VALUES
+),
 (
     'Qiskit Fall Fest PNC 2026',
     'Workshop',
@@ -1366,39 +758,7 @@ INSERT INTO public.opportunities (
     'pending_review',
     false,
     'unverified'
-)
-ON CONFLICT DO NOTHING
-RETURNING id, title, lifecycle_status, created_at;
-
-INSERT INTO public.opportunities (
-    title,
-    type,
-    description,
-    organizer,
-    registration_link,
-    deadline,
-    start_date,
-    end_date,
-    location,
-    is_online,
-    subject_area,
-    grade_requirements,
-    cost,
-    time_commitment,
-    skills_gained,
-    difficulty_level,
-    tags,
-    prep_resources,
-    application_steps,
-    eligibility_details,
-    contact_info,
-    source_url,
-    source_type,
-    created_by,
-    lifecycle_status,
-    is_verified,
-    verification_status
-) VALUES
+),
 (
     'Microsoft Imagine Cup 2027 IDEATHON Kathmandu',
     'Workshop',
@@ -1427,39 +787,7 @@ INSERT INTO public.opportunities (
     'pending_review',
     false,
     'unverified'
-)
-ON CONFLICT DO NOTHING
-RETURNING id, title, lifecycle_status, created_at;
-
-INSERT INTO public.opportunities (
-    title,
-    type,
-    description,
-    organizer,
-    registration_link,
-    deadline,
-    start_date,
-    end_date,
-    location,
-    is_online,
-    subject_area,
-    grade_requirements,
-    cost,
-    time_commitment,
-    skills_gained,
-    difficulty_level,
-    tags,
-    prep_resources,
-    application_steps,
-    eligibility_details,
-    contact_info,
-    source_url,
-    source_type,
-    created_by,
-    lifecycle_status,
-    is_verified,
-    verification_status
-) VALUES
+),
 (
     'President Cup Yantra Teens (YANTRA X 2026)',
     'Competition',
@@ -1488,39 +816,7 @@ INSERT INTO public.opportunities (
     'pending_review',
     false,
     'unverified'
-)
-ON CONFLICT DO NOTHING
-RETURNING id, title, lifecycle_status, created_at;
-
-INSERT INTO public.opportunities (
-    title,
-    type,
-    description,
-    organizer,
-    registration_link,
-    deadline,
-    start_date,
-    end_date,
-    location,
-    is_online,
-    subject_area,
-    grade_requirements,
-    cost,
-    time_commitment,
-    skills_gained,
-    difficulty_level,
-    tags,
-    prep_resources,
-    application_steps,
-    eligibility_details,
-    contact_info,
-    source_url,
-    source_type,
-    created_by,
-    lifecycle_status,
-    is_verified,
-    verification_status
-) VALUES
+),
 (
     'AWS Student Community Day Kathmandu 2026',
     'Workshop',
@@ -1549,39 +845,7 @@ INSERT INTO public.opportunities (
     'pending_review',
     false,
     'unverified'
-)
-ON CONFLICT DO NOTHING
-RETURNING id, title, lifecycle_status, created_at;
-
-INSERT INTO public.opportunities (
-    title,
-    type,
-    description,
-    organizer,
-    registration_link,
-    deadline,
-    start_date,
-    end_date,
-    location,
-    is_online,
-    subject_area,
-    grade_requirements,
-    cost,
-    time_commitment,
-    skills_gained,
-    difficulty_level,
-    tags,
-    prep_resources,
-    application_steps,
-    eligibility_details,
-    contact_info,
-    source_url,
-    source_type,
-    created_by,
-    lifecycle_status,
-    is_verified,
-    verification_status
-) VALUES
+),
 (
     'DevFest Nepal 2026',
     'Other',
@@ -1610,39 +874,7 @@ INSERT INTO public.opportunities (
     'pending_review',
     false,
     'unverified'
-)
-ON CONFLICT DO NOTHING
-RETURNING id, title, lifecycle_status, created_at;
-
-INSERT INTO public.opportunities (
-    title,
-    type,
-    description,
-    organizer,
-    registration_link,
-    deadline,
-    start_date,
-    end_date,
-    location,
-    is_online,
-    subject_area,
-    grade_requirements,
-    cost,
-    time_commitment,
-    skills_gained,
-    difficulty_level,
-    tags,
-    prep_resources,
-    application_steps,
-    eligibility_details,
-    contact_info,
-    source_url,
-    source_type,
-    created_by,
-    lifecycle_status,
-    is_verified,
-    verification_status
-) VALUES
+),
 (
     'AUG Nepal Meetup: Hosting Static Website on Amazon S3',
     'Workshop',
@@ -1686,6 +918,3 @@ where created_by = current_setting('opportunityhub.import_owner_id')::uuid
   and lifecycle_status in ('draft', 'pending_review', 'published', 'rejected', 'cancelled');
 
 commit;
-
--- The results pane displays only rows newly inserted during this run.
--- Existing duplicates are safely skipped.
